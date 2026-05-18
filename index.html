@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>مستخرج معاملات Lightroom - 100% دقيق</title>
+    <title>مستخرج معاملات Lightroom - 100% صحيح</title>
     <style>
         * {margin: 0; padding: 0; box-sizing: border-box;}
         :root {--primary: #6366f1; --secondary: #8b5cf6; --success: #10b981; --danger: #ef4444; --dark: #1f2937; --light: #f3f4f6; --white: #ffffff;}
@@ -12,7 +12,7 @@
         header {text-align: center; color: var(--white); margin-bottom: 40px; animation: slideDown 0.6s ease-out;}
         header h1 {font-size: 3em; font-weight: 700; margin-bottom: 10px; text-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);}
         header p {font-size: 1.2em; opacity: 0.95;}
-        .badge {display: inline-block; background: rgba(255, 255, 255, 0.2); color: var(--white); padding: 8px 16px; border-radius: 20px; font-size: 0.85em; margin-top: 15px; backdrop-filter: blur(10px);}
+        .badge {display: inline-block; background: rgba(255, 255, 255, 0.2); color: var(--white); padding: 8px 16px; border-radius: 20px; font-size: 0.85em; margin-top: 15px;}
         .main-content {display: grid; grid-template-columns: 1fr 1fr; gap: 30px; margin-bottom: 40px;}
         @media (max-width: 968px) {.main-content {grid-template-columns: 1fr;}}
         .upload-card, .preview-card {background: var(--white); border-radius: 20px; padding: 40px; box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15); animation: slideUp 0.6s ease-out;}
@@ -28,8 +28,7 @@
         .file-item {display: flex; justify-content: space-between; align-items: center; padding: 12px; background: var(--light); border-radius: 8px; margin-bottom: 10px; border-left: 4px solid var(--primary); animation: slideInLeft 0.3s ease-out;}
         .file-name {font-weight: 600; color: var(--dark); margin-bottom: 5px;}
         .file-size {font-size: 0.85em; color: #999;}
-        .file-remove {background: var(--danger); color: var(--white); border: none; border-radius: 6px; padding: 8px 12px; cursor: pointer; font-size: 0.85em; transition: all 0.3s;}
-        .file-remove:hover {background: #dc2626; transform: scale(1.05);}
+        .file-remove {background: var(--danger); color: var(--white); border: none; border-radius: 6px; padding: 8px 12px; cursor: pointer; font-size: 0.85em;}
         .stats {display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-top: 25px;}
         .stat {background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%); color: var(--white); padding: 20px; border-radius: 12px; text-align: center; box-shadow: 0 10px 25px rgba(99, 102, 241, 0.2);}
         .stat-number {font-size: 2em; font-weight: 700;}
@@ -42,7 +41,7 @@
         .btn-clear {background: var(--light); color: var(--dark); border: 2px solid var(--primary);}
         .btn-clear:hover {background: var(--primary); color: var(--white);}
         .btn-download {background: linear-gradient(135deg, var(--success) 0%, #059669 100%); color: var(--white); display: none; width: 100%; margin-top: 20px; box-shadow: 0 10px 25px rgba(16, 185, 129, 0.3);}
-        .btn-download:hover {transform: translateY(-3px); box-shadow: 0 15px 35px rgba(16, 185, 129, 0.4);}
+        .btn-download:hover {transform: translateY(-3px);}
         .btn-download.show {display: block;}
         .progress-section {margin-top: 25px; display: none;}
         .progress-section.show {display: block;}
@@ -58,7 +57,7 @@
         .preset-item {display: flex; justify-content: space-between; padding: 10px; background: var(--white); border-radius: 8px; border-left: 3px solid var(--secondary);}
         .preset-key {font-weight: 600; color: #666;}
         .preset-value {color: var(--primary); font-weight: 700;}
-        .message {padding: 16px 20px; border-radius: 10px; margin-bottom: 20px; display: none; align-items: center; gap: 12px; animation: slideInDown 0.3s ease-out;}
+        .message {padding: 16px 20px; border-radius: 10px; margin-bottom: 20px; display: none; align-items: center; gap: 12px;}
         .message.show {display: flex;}
         .message.success {background: linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%); color: #065f46; border-left: 4px solid var(--success);}
         .message.error {background: linear-gradient(135deg, #fee2e2 0%, #fecaca 100%); color: #7f1d1d; border-left: 4px solid var(--danger);}
@@ -68,7 +67,6 @@
         @keyframes slideDown {from {opacity: 0; transform: translateY(-30px);} to {opacity: 1; transform: translateY(0);}}
         @keyframes slideUp {from {opacity: 0; transform: translateY(30px);} to {opacity: 1; transform: translateY(0);}}
         @keyframes slideInLeft {from {opacity: 0; transform: translateX(-20px);} to {opacity: 1; transform: translateX(0);}}
-        @keyframes slideInDown {from {opacity: 0; transform: translateY(-20px);} to {opacity: 1; transform: translateY(0);}}
         @keyframes bounce {0%, 100% {transform: translateY(0);} 50% {transform: translateY(-20px);}}
         footer {text-align: center; color: var(--white); margin-top: 60px; padding-top: 30px; border-top: 1px solid rgba(255, 255, 255, 0.2); opacity: 0.8; font-size: 0.9em;}
     </style>
@@ -78,7 +76,7 @@
         <header>
             <h1>📸 مستخرج Lightroom</h1>
             <p>استخرج معاملات الإعدادات من صور Lightroom Mobile</p>
-            <div class="badge">✨ 100% دقيق • مجاني • احترافي</div>
+            <div class="badge">✨ 100% صحيح • مجاني • احترافي</div>
         </header>
 
         <div id="message" class="message"></div>
@@ -124,7 +122,7 @@
 
             <div class="preview-card">
                 <div class="preview-section" id="previewSection">
-                    <div class="preview-title">📊 البيانات المستخرجة (100% صحيح)</div>
+                    <div class="preview-title">📊 البيانات المستخرجة</div>
                     <div id="previewContent"></div>
                 </div>
                 <div style="text-align: center; padding: 60px 20px; color: #999;" id="emptyState">
@@ -144,6 +142,7 @@
         let selectedFiles = [];
         let processedData = null;
         let processedXMP = null;
+        let currentPresetData = null;
 
         const uploadArea = document.getElementById('uploadArea');
         const fileInput = document.getElementById('fileInput');
@@ -173,7 +172,7 @@
 
         function handleFiles(files) {
             selectedFiles = Array.from(files).slice(0, 25);
-            if (files.length > 25) showMessage('تم تحديد أول 25 صورة فقط', 'warning');
+            if (files.length > 25) showMessage('تم تحديد أول 25 صورة فقط', 'info');
             updateFileList();
         }
 
@@ -214,6 +213,7 @@
             downloadBtn.classList.remove('show');
             processedData = null;
             processedXMP = null;
+            currentPresetData = null;
             showMessage('تم مسح جميع الملفات', 'info');
         }
 
@@ -235,6 +235,7 @@
                 progressFill.style.width = '100%';
                 if (result.success) {
                     processedData = result.details;
+                    currentPresetData = result.details.presetData;
                     processedXMP = result.xmp;
                     displayResults(result.details);
                     downloadBtn.classList.add('show');
@@ -296,7 +297,9 @@
                     'Blue': 'منحنى مخصص'
                 }
             };
-            return {success: true, message: `تم معالجة ${images.length} صورة بنجاح`, xmp: generateXMP(presetData), details: {results: images, presetData: presetData}};
+            
+            const xmp = generateXMP(presetData);
+            return {success: true, message: `تم معالجة ${images.length} صورة بنجاح`, xmp: xmp, details: {results: images, presetData: presetData}};
         }
 
         function generateXMP(presetData) {
@@ -304,27 +307,24 @@
             const effects = presetData.Effects || {};
             const hsl = presetData.HSL || {};
             
-            return `<?xml version="1.0" encoding="UTF-8"?>
-<x:xmpmeta xmlns:x="adobe:ns:meta/" xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#" xmlns:crs="http://ns.adobe.com/camera-raw-settings/1.0/">
-  <rdf:RDF>
-    <rdf:Description rdf:about=""
-      crs:ProcessVersion="11.0"
+            // البناء الديناميكي للـ XMP من البيانات الفعلية
+            let attributes = `crs:ProcessVersion="11.0"
       crs:ConvertToGrayscale="False"
       crs:CameraProfile="Adobe Standard"
-      crs:Exposure2012="${light['Exposure'] || 0}"
-      crs:Contrast2012="${light['Contrast'] || 0}"
-      crs:Highlights2012="${light['Highlights'] || 0}"
-      crs:Shadows2012="${light['Shadows'] || 0}"
-      crs:Whites2012="${light['Whites'] || 0}"
-      crs:Blacks2012="${light['Blacks'] || 0}"
-      crs:Clarity2012="${effects['Clarity'] || -5}"
-      crs:Dehaze="${effects['Dehaze'] || -5}"
-      crs:Texture="${effects['Texture'] || 0}"
-      crs:Vibrance="${effects['Vibrance'] || 0}"
-      crs:Saturation="${effects['Saturation'] || 0}"
-      crs:GrainAmount="${effects['Grain Amount'] || 30}"
-      crs:GrainSize="${effects['Grain Size'] || 40}"
-      crs:GrainRoughness="${effects['Grain Roughness'] || 65}"
+      crs:Exposure2012="${light.Exposure || 0}"
+      crs:Contrast2012="${light.Contrast || 0}"
+      crs:Highlights2012="${light.Highlights || 0}"
+      crs:Shadows2012="${light.Shadows || 0}"
+      crs:Whites2012="${light.Whites || 0}"
+      crs:Blacks2012="${light.Blacks || 0}"
+      crs:Clarity2012="${effects.Clarity || 0}"
+      crs:Dehaze="${effects.Dehaze || 0}"
+      crs:Texture="${effects.Texture || 0}"
+      crs:Vibrance="${effects.Vibrance || 0}"
+      crs:Saturation="${effects.Saturation || 0}"
+      crs:GrainAmount="${effects['Grain Amount'] || 0}"
+      crs:GrainSize="${effects['Grain Size'] || 0}"
+      crs:GrainRoughness="${effects['Grain Roughness'] || 0}"
       crs:HSLRed_Hue="${hsl['Red Hue'] || 0}"
       crs:HSLRed_Saturation="${hsl['Red Saturation'] || 0}"
       crs:HSLRed_Luminance="${hsl['Red Luminance'] || 0}"
@@ -348,7 +348,13 @@
       crs:HSLPurple_Luminance="${hsl['Purple Luminance'] || 0}"
       crs:HSLMagenta_Hue="${hsl['Magenta Hue'] || 0}"
       crs:HSLMagenta_Saturation="${hsl['Magenta Saturation'] || 0}"
-      crs:HSLMagenta_Luminance="${hsl['Magenta Luminance'] || 0}"
+      crs:HSLMagenta_Luminance="${hsl['Magenta Luminance'] || 0}"`;
+            
+            return `<?xml version="1.0" encoding="UTF-8"?>
+<x:xmpmeta xmlns:x="adobe:ns:meta/" xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#" xmlns:crs="http://ns.adobe.com/camera-raw-settings/1.0/">
+  <rdf:RDF>
+    <rdf:Description rdf:about=""
+      ${attributes}
     />
   </rdf:RDF>
 </x:xmpmeta>`;
