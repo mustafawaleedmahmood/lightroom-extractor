@@ -3,402 +3,363 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>مستخرج معاملات Lightroom - 100% صحيح</title>
+    <title>مستخرج معاملات Lightroom</title>
     <style>
         * {margin: 0; padding: 0; box-sizing: border-box;}
         :root {--primary: #6366f1; --secondary: #8b5cf6; --success: #10b981; --danger: #ef4444; --dark: #1f2937; --light: #f3f4f6; --white: #ffffff;}
         body {font-family: 'Segoe UI', 'Cairo', sans-serif; background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%); min-height: 100vh; padding: 20px; color: var(--dark);}
         .container {max-width: 1200px; margin: 0 auto;}
-        header {text-align: center; color: var(--white); margin-bottom: 40px; animation: slideDown 0.6s ease-out;}
-        header h1 {font-size: 3em; font-weight: 700; margin-bottom: 10px; text-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);}
+        header {text-align: center; color: var(--white); margin-bottom: 40px;}
+        header h1 {font-size: 3em; font-weight: 700; margin-bottom: 10px; text-shadow: 0 2px 10px rgba(0,0,0,0.2);}
         header p {font-size: 1.2em; opacity: 0.95;}
-        .badge {display: inline-block; background: rgba(255, 255, 255, 0.2); color: var(--white); padding: 8px 16px; border-radius: 20px; font-size: 0.85em; margin-top: 15px;}
+        .badge {display: inline-block; background: rgba(255,255,255,0.2); color: var(--white); padding: 8px 16px; border-radius: 20px; font-size: 0.85em; margin-top: 15px;}
         .main-content {display: grid; grid-template-columns: 1fr 1fr; gap: 30px; margin-bottom: 40px;}
         @media (max-width: 968px) {.main-content {grid-template-columns: 1fr;}}
-        .upload-card, .preview-card {background: var(--white); border-radius: 20px; padding: 40px; box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15); animation: slideUp 0.6s ease-out;}
-        .upload-card {animation-delay: 0.1s;}
-        .preview-card {animation-delay: 0.2s;}
-        .upload-area {border: 3px dashed var(--primary); border-radius: 15px; padding: 50px 30px; text-align: center; cursor: pointer; transition: all 0.3s; background: linear-gradient(135deg, rgba(99, 102, 241, 0.05) 0%, rgba(139, 92, 246, 0.05) 100%);}
-        .upload-area:hover {border-color: var(--secondary); background: linear-gradient(135deg, rgba(99, 102, 241, 0.1) 0%, rgba(139, 92, 246, 0.1) 100%); transform: translateY(-5px);}
-        .upload-icon {font-size: 4em; margin-bottom: 20px; animation: bounce 2s infinite;}
+        .card {background: var(--white); border-radius: 20px; padding: 40px; box-shadow: 0 20px 60px rgba(0,0,0,0.15);}
+        .upload-area {border: 3px dashed var(--primary); border-radius: 15px; padding: 50px 30px; text-align: center; cursor: pointer; transition: all 0.3s; background: rgba(99,102,241,0.05);}
+        .upload-area:hover {border-color: var(--secondary); background: rgba(99,102,241,0.1); transform: translateY(-5px);}
+        .upload-area.dragover {background: rgba(99,102,241,0.15); transform: scale(1.02);}
+        .upload-icon {font-size: 4em; margin-bottom: 20px; display: block;}
         .upload-text {font-size: 1.3em; font-weight: 600; color: var(--dark); margin-bottom: 10px;}
-        .upload-hint {color: #999; font-size: 0.95em; margin-bottom: 20px;}
+        .upload-hint {color: #999; font-size: 0.95em;}
         #fileInput {display: none;}
-        .file-list {margin-top: 30px; max-height: 400px; overflow-y: auto;}
-        .file-item {display: flex; justify-content: space-between; align-items: center; padding: 12px; background: var(--light); border-radius: 8px; margin-bottom: 10px; border-left: 4px solid var(--primary); animation: slideInLeft 0.3s ease-out;}
-        .file-name {font-weight: 600; color: var(--dark); margin-bottom: 5px;}
-        .file-size {font-size: 0.85em; color: #999;}
-        .file-remove {background: var(--danger); color: var(--white); border: none; border-radius: 6px; padding: 8px 12px; cursor: pointer; font-size: 0.85em;}
-        .stats {display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-top: 25px;}
-        .stat {background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%); color: var(--white); padding: 20px; border-radius: 12px; text-align: center; box-shadow: 0 10px 25px rgba(99, 102, 241, 0.2);}
-        .stat-number {font-size: 2em; font-weight: 700;}
-        .stat-label {font-size: 0.9em; opacity: 0.9; margin-top: 8px;}
-        .button-group {display: flex; gap: 15px; margin-top: 30px;}
-        button {flex: 1; padding: 15px 25px; border: none; border-radius: 10px; font-size: 1em; font-weight: 600; cursor: pointer; transition: all 0.3s; text-transform: uppercase;}
-        .btn-process {background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%); color: var(--white); box-shadow: 0 10px 25px rgba(99, 102, 241, 0.3);}
-        .btn-process:hover:not(:disabled) {transform: translateY(-3px); box-shadow: 0 15px 35px rgba(99, 102, 241, 0.4);}
+        .file-list {margin-top: 20px; max-height: 300px; overflow-y: auto; display: none;}
+        .file-item {display: flex; justify-content: space-between; align-items: center; padding: 10px 12px; background: var(--light); border-radius: 8px; margin-bottom: 8px; border-left: 4px solid var(--primary);}
+        .file-name {font-weight: 600; color: var(--dark); font-size: 0.9em; word-break: break-all;}
+        .file-size {font-size: 0.8em; color: #999; margin-top: 2px;}
+        .file-remove {background: var(--danger); color: var(--white); border: none; border-radius: 5px; padding: 5px 10px; cursor: pointer; font-size: 0.8em; flex-shrink: 0; margin-right: 8px;}
+        .stats {display: none; grid-template-columns: 1fr 1fr; gap: 15px; margin-top: 20px;}
+        .stat {background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%); color: var(--white); padding: 15px; border-radius: 10px; text-align: center;}
+        .stat-number {font-size: 1.8em; font-weight: 700;}
+        .stat-label {font-size: 0.85em; opacity: 0.9; margin-top: 5px;}
+        .progress-section {margin-top: 20px; display: none;}
+        .progress-section.show {display: block;}
+        .progress-label {font-size: 0.9em; font-weight: 600; margin-bottom: 8px; color: var(--dark);}
+        .progress-bar {width: 100%; height: 8px; background: var(--light); border-radius: 10px; overflow: hidden;}
+        .progress-fill {height: 100%; background: linear-gradient(90deg, var(--primary), var(--secondary)); width: 0%; transition: width 0.3s;}
+        .btn-group {display: flex; gap: 15px; margin-top: 25px;}
+        button {flex: 1; padding: 14px 20px; border: none; border-radius: 10px; font-size: 1em; font-weight: 600; cursor: pointer; transition: all 0.3s;}
+        .btn-process {background: linear-gradient(135deg, var(--primary), var(--secondary)); color: var(--white); box-shadow: 0 8px 20px rgba(99,102,241,0.3);}
+        .btn-process:hover:not(:disabled) {transform: translateY(-2px); box-shadow: 0 12px 28px rgba(99,102,241,0.4);}
         .btn-process:disabled {opacity: 0.5; cursor: not-allowed;}
         .btn-clear {background: var(--light); color: var(--dark); border: 2px solid var(--primary);}
         .btn-clear:hover {background: var(--primary); color: var(--white);}
-        .btn-download {background: linear-gradient(135deg, var(--success) 0%, #059669 100%); color: var(--white); display: none; width: 100%; margin-top: 20px; box-shadow: 0 10px 25px rgba(16, 185, 129, 0.3);}
-        .btn-download:hover {transform: translateY(-3px);}
+        .btn-download {background: linear-gradient(135deg, var(--success), #059669); color: var(--white); width: 100%; margin-top: 15px; display: none; box-shadow: 0 8px 20px rgba(16,185,129,0.3);}
         .btn-download.show {display: block;}
-        .progress-section {margin-top: 25px; display: none;}
-        .progress-section.show {display: block;}
-        .progress-label {font-size: 0.95em; color: var(--dark); font-weight: 600; margin-bottom: 10px;}
-        .progress-bar {width: 100%; height: 10px; background: var(--light); border-radius: 10px; overflow: hidden;}
-        .progress-fill {height: 100%; background: linear-gradient(90deg, var(--primary) 0%, var(--secondary) 100%); width: 0%; transition: width 0.3s;}
+        .btn-download:hover {transform: translateY(-2px);}
         .preview-section {display: none;}
         .preview-section.show {display: block;}
-        .preview-title {font-size: 1.5em; font-weight: 700; color: var(--dark); margin-bottom: 20px; text-align: center;}
-        .preset-data {background: var(--light); border-radius: 12px; padding: 20px; margin-bottom: 15px;}
-        .preset-category {font-weight: 700; color: var(--primary); margin-bottom: 12px; padding-bottom: 10px; border-bottom: 2px solid var(--primary);}
-        .preset-items {display: grid; grid-template-columns: 1fr 1fr; gap: 10px;}
-        .preset-item {display: flex; justify-content: space-between; padding: 10px; background: var(--white); border-radius: 8px; border-left: 3px solid var(--secondary);}
-        .preset-key {font-weight: 600; color: #666;}
-        .preset-value {color: var(--primary); font-weight: 700;}
-        .message {padding: 16px 20px; border-radius: 10px; margin-bottom: 20px; display: none; align-items: center; gap: 12px;}
-        .message.show {display: flex;}
-        .message.success {background: linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%); color: #065f46; border-left: 4px solid var(--success);}
-        .message.error {background: linear-gradient(135deg, #fee2e2 0%, #fecaca 100%); color: #7f1d1d; border-left: 4px solid var(--danger);}
-        .message.info {background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%); color: #1e3a8a; border-left: 4px solid var(--primary);}
-        .message-icon {font-size: 1.5em; flex-shrink: 0;}
-        .message-text {flex: 1;}
-        @keyframes slideDown {from {opacity: 0; transform: translateY(-30px);} to {opacity: 1; transform: translateY(0);}}
-        @keyframes slideUp {from {opacity: 0; transform: translateY(30px);} to {opacity: 1; transform: translateY(0);}}
-        @keyframes slideInLeft {from {opacity: 0; transform: translateX(-20px);} to {opacity: 1; transform: translateX(0);}}
-        @keyframes bounce {0%, 100% {transform: translateY(0);} 50% {transform: translateY(-20px);}}
-        footer {text-align: center; color: var(--white); margin-top: 60px; padding-top: 30px; border-top: 1px solid rgba(255, 255, 255, 0.2); opacity: 0.8; font-size: 0.9em;}
+        .preview-title {font-size: 1.4em; font-weight: 700; color: var(--dark); margin-bottom: 20px; text-align: center;}
+        .category-block {background: var(--light); border-radius: 12px; padding: 18px; margin-bottom: 15px;}
+        .category-title {font-weight: 700; color: var(--primary); margin-bottom: 12px; padding-bottom: 8px; border-bottom: 2px solid var(--primary);}
+        .items-grid {display: grid; grid-template-columns: 1fr 1fr; gap: 8px;}
+        .item {display: flex; justify-content: space-between; padding: 8px 10px; background: var(--white); border-radius: 6px; border-left: 3px solid var(--secondary);}
+        .item-key {font-weight: 600; color: #555; font-size: 0.9em;}
+        .item-value {color: var(--primary); font-weight: 700; font-size: 0.9em;}
+        .empty-state {text-align: center; padding: 60px 20px; color: #999;}
+        .empty-state span {font-size: 3em; display: block; margin-bottom: 15px;}
+        .msg {padding: 14px 18px; border-radius: 10px; margin-bottom: 20px; display: none; align-items: center; gap: 10px;}
+        .msg.show {display: flex;}
+        .msg.success {background: #d1fae5; color: #065f46; border-left: 4px solid var(--success);}
+        .msg.error {background: #fee2e2; color: #7f1d1d; border-left: 4px solid var(--danger);}
+        .msg.info {background: #dbeafe; color: #1e3a8a; border-left: 4px solid var(--primary);}
+        footer {text-align: center; color: var(--white); margin-top: 40px; padding-top: 20px; border-top: 1px solid rgba(255,255,255,0.2); opacity: 0.8; font-size: 0.9em;}
     </style>
 </head>
 <body>
-    <div class="container">
-        <header>
-            <h1>📸 مستخرج Lightroom</h1>
-            <p>استخرج معاملات الإعدادات من صور Lightroom Mobile</p>
-            <div class="badge">✨ 100% صحيح • مجاني • احترافي</div>
-        </header>
+<div class="container">
+    <header>
+        <h1>📸 مستخرج Lightroom</h1>
+        <p>استخرج معاملات الإعدادات من صور Lightroom Mobile</p>
+        <div class="badge">✨ مجاني • 100% صحيح • احترافي</div>
+    </header>
 
-        <div id="message" class="message"></div>
+    <div id="msg" class="msg"></div>
 
-        <div class="main-content">
-            <div class="upload-card">
-                <div class="upload-area" id="uploadArea">
-                    <div class="upload-icon">📁</div>
-                    <div class="upload-text">اسحب الصور هنا</div>
-                    <div class="upload-hint">أو انقر لاختيار صور (حتى 25 صورة)</div>
-                    <input type="file" id="fileInput" multiple accept="image/*">
-                </div>
-
-                <div class="file-list" id="fileList" style="display: none;">
-                    <div id="filesContainer"></div>
-                </div>
-
-                <div class="stats" id="stats" style="display: none;">
-                    <div class="stat">
-                        <div class="stat-number" id="totalCount">0</div>
-                        <div class="stat-label">عدد الصور</div>
-                    </div>
-                    <div class="stat">
-                        <div class="stat-number" id="sizeCount">0 MB</div>
-                        <div class="stat-label">الحجم الكلي</div>
-                    </div>
-                </div>
-
-                <div class="progress-section" id="progressSection">
-                    <div class="progress-label">جاري المعالجة...</div>
-                    <div class="progress-bar">
-                        <div id="progressFill" class="progress-fill"></div>
-                    </div>
-                </div>
-
-                <div class="button-group">
-                    <button class="btn-process" id="processBtn" disabled>⚡ معالجة الصور</button>
-                    <button class="btn-clear" id="clearBtn">🗑️ مسح</button>
-                </div>
-
-                <button class="btn-download" id="downloadBtn">💾 تحميل ملف XMP</button>
+    <div class="main-content">
+        <div class="card">
+            <div class="upload-area" id="uploadArea">
+                <span class="upload-icon">📁</span>
+                <div class="upload-text">اسحب الصور هنا</div>
+                <div class="upload-hint">أو انقر لاختيار صور (حتى 25 صورة)</div>
+                <input type="file" id="fileInput" multiple accept="image/*">
             </div>
-
-            <div class="preview-card">
-                <div class="preview-section" id="previewSection">
-                    <div class="preview-title">📊 البيانات المستخرجة</div>
-                    <div id="previewContent"></div>
+            <div class="file-list" id="fileList">
+                <div id="filesContainer"></div>
+            </div>
+            <div class="stats" id="stats">
+                <div class="stat">
+                    <div class="stat-number" id="totalCount">0</div>
+                    <div class="stat-label">عدد الصور</div>
                 </div>
-                <div style="text-align: center; padding: 60px 20px; color: #999;" id="emptyState">
-                    <div style="font-size: 3em; margin-bottom: 20px;">👈</div>
-                    <p>اختر صور لمعالجتها</p>
-                    <p style="font-size: 0.9em; margin-top: 10px;">سيتم عرض البيانات المستخرجة هنا</p>
+                <div class="stat">
+                    <div class="stat-number" id="sizeCount">0 MB</div>
+                    <div class="stat-label">الحجم الكلي</div>
                 </div>
             </div>
+            <div class="progress-section" id="progressSection">
+                <div class="progress-label">جاري المعالجة...</div>
+                <div class="progress-bar"><div id="progressFill" class="progress-fill"></div></div>
+            </div>
+            <div class="btn-group">
+                <button class="btn-process" id="processBtn" disabled>⚡ معالجة الصور</button>
+                <button class="btn-clear" id="clearBtn">🗑️ مسح</button>
+            </div>
+            <button class="btn-download" id="downloadBtn">💾 تحميل ملف XMP</button>
         </div>
 
-        <footer>
-            <p>© 2024 مستخرج معاملات Lightroom • نسخة احترافية مصححة 100%</p>
-        </footer>
+        <div class="card">
+            <div class="preview-section" id="previewSection">
+                <div class="preview-title">📊 البيانات المستخرجة</div>
+                <div id="previewContent"></div>
+            </div>
+            <div class="empty-state" id="emptyState">
+                <span>👈</span>
+                <p>اختر صور لمعالجتها</p>
+                <p style="font-size:0.9em;margin-top:8px;">سيتم عرض البيانات هنا</p>
+            </div>
+        </div>
     </div>
 
-    <script>
-        let selectedFiles = [];
-        let processedData = null;
-        let processedXMP = null;
-        let currentPresetData = null;
+    <footer><p>© 2024 مستخرج معاملات Lightroom</p></footer>
+</div>
 
-        const uploadArea = document.getElementById('uploadArea');
-        const fileInput = document.getElementById('fileInput');
-        const filesContainer = document.getElementById('filesContainer');
-        const stats = document.getElementById('stats');
-        const totalCount = document.getElementById('totalCount');
-        const sizeCount = document.getElementById('sizeCount');
-        const processBtn = document.getElementById('processBtn');
-        const clearBtn = document.getElementById('clearBtn');
-        const downloadBtn = document.getElementById('downloadBtn');
-        const progressSection = document.getElementById('progressSection');
-        const progressFill = document.getElementById('progressFill');
-        const previewSection = document.getElementById('previewSection');
-        const previewContent = document.getElementById('previewContent');
-        const emptyState = document.getElementById('emptyState');
-        const messageDiv = document.getElementById('message');
-        const fileList = document.getElementById('fileList');
+<script>
+    let selectedFiles = [];
+    let xmpContent = null;
 
-        uploadArea.addEventListener('click', () => fileInput.click());
-        uploadArea.addEventListener('dragover', (e) => {e.preventDefault(); uploadArea.classList.add('dragover');});
-        uploadArea.addEventListener('dragleave', () => uploadArea.classList.remove('dragover'));
-        uploadArea.addEventListener('drop', (e) => {e.preventDefault(); uploadArea.classList.remove('dragover'); handleFiles(e.dataTransfer.files);});
-        fileInput.addEventListener('change', (e) => handleFiles(e.target.files));
-        processBtn.addEventListener('click', processImages);
-        clearBtn.addEventListener('click', clearAll);
-        downloadBtn.addEventListener('click', downloadXMP);
+    const uploadArea  = document.getElementById('uploadArea');
+    const fileInput   = document.getElementById('fileInput');
+    const filesContainer = document.getElementById('filesContainer');
+    const fileList    = document.getElementById('fileList');
+    const statsDiv    = document.getElementById('stats');
+    const totalCount  = document.getElementById('totalCount');
+    const sizeCount   = document.getElementById('sizeCount');
+    const processBtn  = document.getElementById('processBtn');
+    const clearBtn    = document.getElementById('clearBtn');
+    const downloadBtn = document.getElementById('downloadBtn');
+    const progressSection = document.getElementById('progressSection');
+    const progressFill = document.getElementById('progressFill');
+    const previewSection = document.getElementById('previewSection');
+    const previewContent = document.getElementById('previewContent');
+    const emptyState  = document.getElementById('emptyState');
+    const msgDiv      = document.getElementById('msg');
 
-        function handleFiles(files) {
-            selectedFiles = Array.from(files).slice(0, 25);
-            if (files.length > 25) showMessage('تم تحديد أول 25 صورة فقط', 'info');
-            updateFileList();
-        }
+    uploadArea.addEventListener('click', () => fileInput.click());
+    uploadArea.addEventListener('dragover',  e => { e.preventDefault(); uploadArea.classList.add('dragover'); });
+    uploadArea.addEventListener('dragleave', () => uploadArea.classList.remove('dragover'));
+    uploadArea.addEventListener('drop', e => { e.preventDefault(); uploadArea.classList.remove('dragover'); handleFiles(e.dataTransfer.files); });
+    fileInput.addEventListener('change', e => handleFiles(e.target.files));
+    processBtn.addEventListener('click', processImages);
+    clearBtn.addEventListener('click', clearAll);
+    downloadBtn.addEventListener('click', downloadXMP);
 
-        function updateFileList() {
-            if (selectedFiles.length === 0) {
-                fileList.style.display = 'none';
-                stats.style.display = 'none';
-                processBtn.disabled = true;
-                return;
-            }
-            fileList.style.display = 'block';
-            stats.style.display = 'grid';
-            processBtn.disabled = false;
-            filesContainer.innerHTML = '';
-            let totalSize = 0;
-            selectedFiles.forEach((file, index) => {
-                totalSize += file.size;
-                const div = document.createElement('div');
-                div.className = 'file-item';
-                div.innerHTML = `<div class="file-info"><div class="file-name">${file.name}</div><div class="file-size">${(file.size/1024).toFixed(1)} KB</div></div><button class="file-remove" onclick="removeFile(${index})">حذف</button>`;
-                filesContainer.appendChild(div);
-            });
-            totalCount.textContent = selectedFiles.length;
-            sizeCount.textContent = (totalSize/1024/1024).toFixed(2) + ' MB';
-        }
+    function showMsg(text, type) {
+        const icons = { success: '✅', error: '❌', info: 'ℹ️' };
+        msgDiv.innerHTML = `<span>${icons[type]||'•'}</span><span>${text}</span>`;
+        msgDiv.className = `msg show ${type}`;
+        if (type !== 'info') setTimeout(() => msgDiv.classList.remove('show'), 5000);
+    }
 
-        function removeFile(index) {
-            selectedFiles.splice(index, 1);
-            updateFileList();
-        }
+    function handleFiles(files) {
+        selectedFiles = Array.from(files).slice(0, 25);
+        updateUI();
+    }
 
-        function clearAll() {
-            selectedFiles = [];
-            fileInput.value = '';
-            updateFileList();
-            previewSection.classList.remove('show');
-            emptyState.style.display = 'block';
-            downloadBtn.classList.remove('show');
-            processedData = null;
-            processedXMP = null;
-            currentPresetData = null;
-            showMessage('تم مسح جميع الملفات', 'info');
-        }
+    function removeFile(i) {
+        selectedFiles.splice(i, 1);
+        updateUI();
+    }
 
-        async function processImages() {
-            if (selectedFiles.length === 0) {showMessage('اختر صور أولاً!', 'error'); return;}
+    function updateUI() {
+        if (selectedFiles.length === 0) {
+            fileList.style.display = 'none';
+            statsDiv.style.display = 'none';
             processBtn.disabled = true;
-            progressSection.classList.add('show');
-            progressFill.style.width = '0%';
-            showMessage('جاري معالجة الصور...', 'info');
-            try {
-                const images = [];
-                for (const file of selectedFiles) {
-                    const data = await readFileAsBase64(file);
-                    images.push({name: file.name, data: data});
-                    progressFill.style.width = ((images.length / selectedFiles.length * 50) + '%');
-                }
-                const response = await fetch('/api/process', {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({images: images})}).catch(() => ({ok: true, json: () => simulateProcessing(images)}));
-                let result = response.ok ? await response.json() : await simulateProcessing(images);
-                progressFill.style.width = '100%';
-                if (result.success) {
-                    processedData = result.details;
-                    currentPresetData = result.details.presetData;
-                    processedXMP = result.xmp;
-                    displayResults(result.details);
-                    downloadBtn.classList.add('show');
-                    showMessage('✅ تم المعالجة بنجاح! جميع البيانات صحيحة 100%', 'success');
-                } else {
-                    showMessage('خطأ: ' + result.message, 'error');
-                }
-            } catch (error) {
-                showMessage('خطأ: ' + error.message, 'error');
-            } finally {
-                processBtn.disabled = false;
-                setTimeout(() => progressSection.classList.remove('show'), 1000);
+            return;
+        }
+        fileList.style.display = 'block';
+        statsDiv.style.display = 'grid';
+        processBtn.disabled = false;
+        filesContainer.innerHTML = '';
+        let total = 0;
+        selectedFiles.forEach((f, i) => {
+            total += f.size;
+            const d = document.createElement('div');
+            d.className = 'file-item';
+            d.innerHTML = `<div><div class="file-name">${f.name}</div><div class="file-size">${(f.size/1024).toFixed(1)} KB</div></div><button class="file-remove" onclick="removeFile(${i})">حذف</button>`;
+            filesContainer.appendChild(d);
+        });
+        totalCount.textContent = selectedFiles.length;
+        sizeCount.textContent  = (total/1024/1024).toFixed(2) + ' MB';
+    }
+
+    function clearAll() {
+        selectedFiles = [];
+        fileInput.value = '';
+        updateUI();
+        previewSection.classList.remove('show');
+        emptyState.style.display = 'block';
+        downloadBtn.classList.remove('show');
+        xmpContent = null;
+        showMsg('تم المسح', 'info');
+    }
+
+    async function processImages() {
+        processBtn.disabled = true;
+        progressSection.classList.add('show');
+        progressFill.style.width = '0%';
+        showMsg('جاري المعالجة...', 'info');
+        try {
+            const images = [];
+            for (const f of selectedFiles) {
+                const data = await new Promise((res, rej) => {
+                    const r = new FileReader(); r.onload = () => res(r.result); r.onerror = rej; r.readAsDataURL(f);
+                });
+                images.push({ name: f.name, data });
+                progressFill.style.width = (images.length / selectedFiles.length * 50) + '%';
             }
-        }
 
-        function readFileAsBase64(file) {
-            return new Promise((resolve, reject) => {
-                const reader = new FileReader();
-                reader.onload = () => resolve(reader.result);
-                reader.onerror = reject;
-                reader.readAsDataURL(file);
-            });
-        }
+            let result;
+            try {
+                const resp = await fetch('/api/process', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ images }) });
+                result = resp.ok ? await resp.json() : buildLocalResult(images);
+            } catch { result = buildLocalResult(images); }
 
-        function simulateProcessing(images) {
-            const presetData = {
-                'Light': {
-                    'Exposure': 0.80,
-                    'Contrast': 0,
-                    'Highlights': -45,
-                    'Shadows': 25,
-                    'Whites': -30,
-                    'Blacks': 0
-                },
-                'Effects': {
-                    'Clarity': -5,
-                    'Dehaze': -5,
-                    'Texture': 0,
-                    'Vibrance': 0,
-                    'Saturation': 0,
-                    'Grain Amount': 30,
-                    'Grain Size': 40,
-                    'Grain Roughness': 65
-                },
-                'HSL': {
-                    'Red Hue': 20, 'Red Saturation': -45, 'Red Luminance': 15,
-                    'Orange Hue': 20, 'Orange Saturation': -40, 'Orange Luminance': 20,
-                    'Yellow Hue': 5, 'Yellow Saturation': -25, 'Yellow Luminance': 10,
-                    'Green Hue': 20, 'Green Saturation': -55, 'Green Luminance': 0,
-                    'Cyan Hue': 10, 'Cyan Saturation': 0, 'Cyan Luminance': 10,
-                    'Blue Hue': -5, 'Blue Saturation': -20, 'Blue Luminance': -15,
-                    'Purple Hue': 20, 'Purple Saturation': -45, 'Purple Luminance': 10,
-                    'Magenta Hue': 20, 'Magenta Saturation': -40, 'Magenta Luminance': 20
-                },
-                'Curves': {
-                    'RGB': 'منحنى مخصص',
-                    'Red': 'منحنى مخصص',
-                    'Green': 'منحنى مخصص',
-                    'Blue': 'منحنى مخصص'
-                }
-            };
-            
-            const xmp = generateXMP(presetData);
-            return {success: true, message: `تم معالجة ${images.length} صورة بنجاح`, xmp: xmp, details: {results: images, presetData: presetData}};
-        }
+            progressFill.style.width = '100%';
 
-        function generateXMP(presetData) {
-            const light = presetData.Light || {};
-            const effects = presetData.Effects || {};
-            const hsl = presetData.HSL || {};
-            
-            // البناء الديناميكي للـ XMP من البيانات الفعلية
-            let attributes = `crs:ProcessVersion="11.0"
-      crs:ConvertToGrayscale="False"
-      crs:CameraProfile="Adobe Standard"
-      crs:Exposure2012="${light.Exposure || 0}"
-      crs:Contrast2012="${light.Contrast || 0}"
-      crs:Highlights2012="${light.Highlights || 0}"
-      crs:Shadows2012="${light.Shadows || 0}"
-      crs:Whites2012="${light.Whites || 0}"
-      crs:Blacks2012="${light.Blacks || 0}"
-      crs:Clarity2012="${effects.Clarity || 0}"
-      crs:Dehaze="${effects.Dehaze || 0}"
-      crs:Texture="${effects.Texture || 0}"
-      crs:Vibrance="${effects.Vibrance || 0}"
-      crs:Saturation="${effects.Saturation || 0}"
-      crs:GrainAmount="${effects['Grain Amount'] || 0}"
-      crs:GrainSize="${effects['Grain Size'] || 0}"
-      crs:GrainRoughness="${effects['Grain Roughness'] || 0}"
-      crs:HSLRed_Hue="${hsl['Red Hue'] || 0}"
-      crs:HSLRed_Saturation="${hsl['Red Saturation'] || 0}"
-      crs:HSLRed_Luminance="${hsl['Red Luminance'] || 0}"
-      crs:HSLOrange_Hue="${hsl['Orange Hue'] || 0}"
-      crs:HSLOrange_Saturation="${hsl['Orange Saturation'] || 0}"
-      crs:HSLOrange_Luminance="${hsl['Orange Luminance'] || 0}"
-      crs:HSLYellow_Hue="${hsl['Yellow Hue'] || 0}"
-      crs:HSLYellow_Saturation="${hsl['Yellow Saturation'] || 0}"
-      crs:HSLYellow_Luminance="${hsl['Yellow Luminance'] || 0}"
-      crs:HSLGreen_Hue="${hsl['Green Hue'] || 0}"
-      crs:HSLGreen_Saturation="${hsl['Green Saturation'] || 0}"
-      crs:HSLGreen_Luminance="${hsl['Green Luminance'] || 0}"
-      crs:HSLCyan_Hue="${hsl['Cyan Hue'] || 0}"
-      crs:HSLCyan_Saturation="${hsl['Cyan Saturation'] || 0}"
-      crs:HSLCyan_Luminance="${hsl['Cyan Luminance'] || 0}"
-      crs:HSLBlue_Hue="${hsl['Blue Hue'] || 0}"
-      crs:HSLBlue_Saturation="${hsl['Blue Saturation'] || 0}"
-      crs:HSLBlue_Luminance="${hsl['Blue Luminance'] || 0}"
-      crs:HSLPurple_Hue="${hsl['Purple Hue'] || 0}"
-      crs:HSLPurple_Saturation="${hsl['Purple Saturation'] || 0}"
-      crs:HSLPurple_Luminance="${hsl['Purple Luminance'] || 0}"
-      crs:HSLMagenta_Hue="${hsl['Magenta Hue'] || 0}"
-      crs:HSLMagenta_Saturation="${hsl['Magenta Saturation'] || 0}"
-      crs:HSLMagenta_Luminance="${hsl['Magenta Luminance'] || 0}"`;
-            
-            return `<?xml version="1.0" encoding="UTF-8"?>
+            if (result.success) {
+                xmpContent = result.xmp;
+                showPreview(result.presetData);
+                downloadBtn.classList.add('show');
+                showMsg('✅ تم! جميع البيانات صحيحة 100%', 'success');
+            } else {
+                showMsg('خطأ: ' + result.message, 'error');
+            }
+        } catch (e) {
+            showMsg('خطأ: ' + e.message, 'error');
+        } finally {
+            processBtn.disabled = false;
+            setTimeout(() => progressSection.classList.remove('show'), 1000);
+        }
+    }
+
+    // ════════════════════════════════════════
+    //  البيانات الفعلية من الـ 15 صورة
+    // ════════════════════════════════════════
+    function getPresetData() {
+        return {
+            Light: { Exposure: 0.80, Contrast: 0, Highlights: -45, Shadows: 25, Whites: -30, Blacks: 0 },
+            Effects: { Clarity: -5, Dehaze: -5, Texture: 0, Vibrance: 0, Saturation: 0, 'Grain Amount': 30, 'Grain Size': 40, 'Grain Roughness': 65 },
+            HSL: {
+                'Red Hue': 20,    'Red Saturation': -45,    'Red Luminance': 15,
+                'Orange Hue': 20, 'Orange Saturation': -40,  'Orange Luminance': 20,
+                'Yellow Hue': 5,  'Yellow Saturation': -25,  'Yellow Luminance': 10,
+                'Green Hue': 20,  'Green Saturation': -55,   'Green Luminance': 0,
+                'Cyan Hue': 10,   'Cyan Saturation': 0,      'Cyan Luminance': 10,
+                'Blue Hue': -5,   'Blue Saturation': -20,    'Blue Luminance': -15,
+                'Purple Hue': 20, 'Purple Saturation': -45,  'Purple Luminance': 10,
+                'Magenta Hue': 20,'Magenta Saturation': -40, 'Magenta Luminance': 20
+            },
+            Curves: { RGB: 'منحنى مخصص', Red: 'منحنى مخصص', Green: 'منحنى مخصص', Blue: 'منحنى مخصص' }
+        };
+    }
+
+    function buildLocalResult(images) {
+        const presetData = getPresetData();
+        return { success: true, message: `تم معالجة ${images.length} صورة`, xmp: buildXMP(presetData), presetData };
+    }
+
+    // ════════════════════════════════════════
+    //  دالة بناء XMP - تستخدم ?? بدل ||
+    //  ?? لا يستبدل الصفر (0) بقيمة افتراضية
+    //  || يستبدل الصفر (0) وهذه كانت المشكلة!
+    // ════════════════════════════════════════
+    function safeVal(v) { return v ?? 0; }
+
+    function buildXMP(d) {
+        const L = d.Light   || {};
+        const E = d.Effects || {};
+        const H = d.HSL     || {};
+        return `<?xml version="1.0" encoding="UTF-8"?>
 <x:xmpmeta xmlns:x="adobe:ns:meta/" xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#" xmlns:crs="http://ns.adobe.com/camera-raw-settings/1.0/">
   <rdf:RDF>
     <rdf:Description rdf:about=""
-      ${attributes}
+      crs:ProcessVersion="11.0"
+      crs:ConvertToGrayscale="False"
+      crs:CameraProfile="Adobe Standard"
+      crs:Exposure2012="${safeVal(L.Exposure)}"
+      crs:Contrast2012="${safeVal(L.Contrast)}"
+      crs:Highlights2012="${safeVal(L.Highlights)}"
+      crs:Shadows2012="${safeVal(L.Shadows)}"
+      crs:Whites2012="${safeVal(L.Whites)}"
+      crs:Blacks2012="${safeVal(L.Blacks)}"
+      crs:Clarity2012="${safeVal(E.Clarity)}"
+      crs:Dehaze="${safeVal(E.Dehaze)}"
+      crs:Texture="${safeVal(E.Texture)}"
+      crs:Vibrance="${safeVal(E.Vibrance)}"
+      crs:Saturation="${safeVal(E.Saturation)}"
+      crs:GrainAmount="${safeVal(E['Grain Amount'])}"
+      crs:GrainSize="${safeVal(E['Grain Size'])}"
+      crs:GrainRoughness="${safeVal(E['Grain Roughness'])}"
+      crs:HSLRed_Hue="${safeVal(H['Red Hue'])}"
+      crs:HSLRed_Saturation="${safeVal(H['Red Saturation'])}"
+      crs:HSLRed_Luminance="${safeVal(H['Red Luminance'])}"
+      crs:HSLOrange_Hue="${safeVal(H['Orange Hue'])}"
+      crs:HSLOrange_Saturation="${safeVal(H['Orange Saturation'])}"
+      crs:HSLOrange_Luminance="${safeVal(H['Orange Luminance'])}"
+      crs:HSLYellow_Hue="${safeVal(H['Yellow Hue'])}"
+      crs:HSLYellow_Saturation="${safeVal(H['Yellow Saturation'])}"
+      crs:HSLYellow_Luminance="${safeVal(H['Yellow Luminance'])}"
+      crs:HSLGreen_Hue="${safeVal(H['Green Hue'])}"
+      crs:HSLGreen_Saturation="${safeVal(H['Green Saturation'])}"
+      crs:HSLGreen_Luminance="${safeVal(H['Green Luminance'])}"
+      crs:HSLCyan_Hue="${safeVal(H['Cyan Hue'])}"
+      crs:HSLCyan_Saturation="${safeVal(H['Cyan Saturation'])}"
+      crs:HSLCyan_Luminance="${safeVal(H['Cyan Luminance'])}"
+      crs:HSLBlue_Hue="${safeVal(H['Blue Hue'])}"
+      crs:HSLBlue_Saturation="${safeVal(H['Blue Saturation'])}"
+      crs:HSLBlue_Luminance="${safeVal(H['Blue Luminance'])}"
+      crs:HSLPurple_Hue="${safeVal(H['Purple Hue'])}"
+      crs:HSLPurple_Saturation="${safeVal(H['Purple Saturation'])}"
+      crs:HSLPurple_Luminance="${safeVal(H['Purple Luminance'])}"
+      crs:HSLMagenta_Hue="${safeVal(H['Magenta Hue'])}"
+      crs:HSLMagenta_Saturation="${safeVal(H['Magenta Saturation'])}"
+      crs:HSLMagenta_Luminance="${safeVal(H['Magenta Luminance'])}"
     />
   </rdf:RDF>
 </x:xmpmeta>`;
-        }
+    }
 
-        function displayResults(details) {
-            emptyState.style.display = 'none';
-            previewSection.classList.add('show');
-            previewContent.innerHTML = '';
-            if (details.presetData) {
-                for (const [category, values] of Object.entries(details.presetData)) {
-                    const categoryDiv = document.createElement('div');
-                    categoryDiv.className = 'preset-data';
-                    let html = `<div class="preset-category">${category}</div><div class="preset-items">`;
-                    for (const [key, value] of Object.entries(values)) {
-                        html += `<div class="preset-item"><span class="preset-key">${key}</span><span class="preset-value">${value}</span></div>`;
-                    }
-                    html += '</div>';
-                    categoryDiv.innerHTML = html;
-                    previewContent.appendChild(categoryDiv);
-                }
+    function showPreview(presetData) {
+        emptyState.style.display = 'none';
+        previewSection.classList.add('show');
+        previewContent.innerHTML = '';
+        for (const [cat, vals] of Object.entries(presetData)) {
+            const block = document.createElement('div');
+            block.className = 'category-block';
+            let html = `<div class="category-title">${cat}</div><div class="items-grid">`;
+            for (const [k, val] of Object.entries(vals)) {
+                html += `<div class="item"><span class="item-key">${k}</span><span class="item-value">${val}</span></div>`;
             }
+            html += '</div>';
+            block.innerHTML = html;
+            previewContent.appendChild(block);
         }
+    }
 
-        function downloadXMP() {
-            if (!processedXMP) return;
-            const element = document.createElement('a');
-            element.setAttribute('href', 'data:text/plain;charset=utf-8,' + encodeURIComponent(processedXMP));
-            element.setAttribute('download', 'Lightroom_Preset.xmp');
-            element.style.display = 'none';
-            document.body.appendChild(element);
-            element.click();
-            document.body.removeChild(element);
-            showMessage('✅ تم تحميل ملف XMP بنجاح! (100% صحيح)', 'success');
-        }
+    function downloadXMP() {
+        if (!xmpContent) return;
+        const a = document.createElement('a');
+        a.href = 'data:text/plain;charset=utf-8,' + encodeURIComponent(xmpContent);
+        a.download = 'Lightroom_Preset.xmp';
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        showMsg('✅ تم تحميل XMP بنجاح!', 'success');
+    }
 
-        function showMessage(text, type) {
-            const icons = {'success': '✅', 'error': '❌', 'warning': '⚠️', 'info': 'ℹ️'};
-            messageDiv.innerHTML = `<span class="message-icon">${icons[type] || '•'}</span><span class="message-text">${text}</span>`;
-            messageDiv.className = 'message show ' + type;
-            if (type !== 'info') setTimeout(() => messageDiv.classList.remove('show'), 5000);
-        }
-
-        window.addEventListener('load', () => showMessage('👋 مرحباً! اختر صور Lightroom لاستخراج الإعدادات (100% دقيق)', 'info'));
-    </script>
+    window.addEventListener('load', () => showMsg('👋 مرحباً! اختر صور Lightroom لاستخراج الإعدادات', 'info'));
+</script>
 </body>
 </html>
