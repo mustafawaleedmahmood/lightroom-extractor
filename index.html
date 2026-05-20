@@ -1,1384 +1,480 @@
-
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>مستخرج معاملات Lightroom</title>
-  <style>
-    * {
-      box-sizing: border-box;
-      margin: 0;
-      padding: 0;
-    }
-
-    :root {
-      --primary: #4f46e5;
-      --secondary: #0f766e;
-      --success: #16a34a;
-      --danger: #dc2626;
-      --warning: #d97706;
-      --ink: #172033;
-      --muted: #687385;
-      --line: #d9dee8;
-      --surface: #f7f8fb;
-      --white: #ffffff;
-    }
-
-    body {
-      min-height: 100vh;
-      padding: 24px;
-      color: var(--ink);
-      font-family: "Segoe UI", Tahoma, Arial, sans-serif;
-      background:
-        radial-gradient(circle at 12% 12%, rgba(15, 118, 110, 0.22), transparent 28rem),
-        linear-gradient(135deg, #eef2ff 0%, #f8fafc 54%, #ecfdf5 100%);
-    }
-
-    .container {
-      max-width: 1180px;
-      margin: 0 auto;
-    }
-
-    header {
-      margin: 10px 0 28px;
-      text-align: center;
-    }
-
-    header h1 {
-      margin-bottom: 10px;
-      font-size: clamp(2rem, 5vw, 3.2rem);
-      line-height: 1.15;
-      letter-spacing: 0;
-    }
-
-    header p {
-      color: var(--muted);
-      font-size: 1.05rem;
-      line-height: 1.8;
-    }
-
-    .badge {
-      display: inline-flex;
-      align-items: center;
-      gap: 8px;
-      margin-top: 16px;
-      padding: 8px 14px;
-      color: #eef2ff;
-      background: var(--ink);
-      border-radius: 999px;
-      font-size: 0.9rem;
-      font-weight: 700;
-    }
-
-    .main-content {
-      display: grid;
-      grid-template-columns: minmax(0, 0.92fr) minmax(0, 1.08fr);
-      gap: 24px;
-      align-items: start;
-    }
-
-    @media (max-width: 920px) {
-      body {
-        padding: 14px;
-      }
-
-      .main-content {
-        grid-template-columns: 1fr;
-      }
-    }
-
-    .panel {
-      background: rgba(255, 255, 255, 0.94);
-      border: 1px solid rgba(217, 222, 232, 0.94);
-      border-radius: 8px;
-      box-shadow: 0 18px 48px rgba(23, 32, 51, 0.12);
-    }
-
-    .panel-inner {
-      padding: clamp(20px, 4vw, 34px);
-    }
-
-    .upload-area {
-      display: block;
-      min-height: 230px;
-      padding: 34px 24px;
-      text-align: center;
-      cursor: pointer;
-      background: #f8fafc;
-      border: 2px dashed var(--primary);
-      border-radius: 8px;
-      transition: border-color 0.2s ease, background 0.2s ease, transform 0.2s ease;
-    }
-
-    .upload-area:hover,
-    .upload-area.dragover {
-      background: #eef2ff;
-      border-color: var(--secondary);
-      transform: translateY(-2px);
-    }
-
-    .upload-icon {
-      display: block;
-      margin-bottom: 16px;
-      font-size: 3.6rem;
-      line-height: 1;
-    }
-
-    .upload-text {
-      margin-bottom: 8px;
-      color: var(--ink);
-      font-size: 1.22rem;
-      font-weight: 800;
-    }
-
-    .upload-hint {
-      color: var(--muted);
-      font-size: 0.94rem;
-      line-height: 1.7;
-    }
-
-    #fileInput {
-      display: none;
-    }
-
-    .file-list {
-      display: none;
-      max-height: 265px;
-      margin-top: 18px;
-      overflow-y: auto;
-    }
-
-    .file-item {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 12px;
-      margin-bottom: 8px;
-      padding: 10px 12px;
-      background: var(--surface);
-      border: 1px solid var(--line);
-      border-radius: 8px;
-    }
-
-    .file-name {
-      max-width: 100%;
-      color: var(--ink);
-      font-size: 0.92rem;
-      font-weight: 700;
-      overflow-wrap: anywhere;
-    }
-
-    .file-meta {
-      margin-top: 3px;
-      color: var(--muted);
-      font-size: 0.8rem;
-      direction: ltr;
-      text-align: right;
-    }
-
-    .stats {
-      display: none;
-      grid-template-columns: 1fr 1fr;
-      gap: 12px;
-      margin-top: 18px;
-    }
-
-    .stat {
-      padding: 14px;
-      color: var(--white);
-      text-align: center;
-      background: linear-gradient(135deg, var(--primary), var(--secondary));
-      border-radius: 8px;
-    }
-
-    .stat-number {
-      font-size: 1.6rem;
-      font-weight: 800;
-    }
-
-    .stat-label {
-      margin-top: 4px;
-      font-size: 0.84rem;
-      opacity: 0.92;
-    }
-
-    .progress-section {
-      display: none;
-      margin-top: 18px;
-    }
-
-    .progress-section.show {
-      display: block;
-    }
-
-    .progress-label {
-      margin-bottom: 8px;
-      font-size: 0.9rem;
-      font-weight: 800;
-    }
-
-    .progress-bar {
-      width: 100%;
-      height: 9px;
-      overflow: hidden;
-      background: #e5e7eb;
-      border-radius: 999px;
-    }
-
-    .progress-fill {
-      width: 0%;
-      height: 100%;
-      background: linear-gradient(90deg, var(--primary), var(--secondary));
-      transition: width 0.18s ease;
-    }
-
-    .btn-group {
-      display: grid;
-      grid-template-columns: 1fr 0.55fr;
-      gap: 12px;
-      margin-top: 20px;
-    }
-
-    @media (max-width: 520px) {
-      .btn-group {
-        grid-template-columns: 1fr;
-      }
-    }
-
-    button {
-      min-height: 48px;
-      padding: 12px 16px;
-      color: var(--ink);
-      font: inherit;
-      font-size: 0.98rem;
-      font-weight: 800;
-      cursor: pointer;
-      background: var(--white);
-      border: 1px solid var(--line);
-      border-radius: 8px;
-      transition: transform 0.18s ease, background 0.18s ease, border-color 0.18s ease;
-    }
-
-    button:hover:not(:disabled) {
-      transform: translateY(-1px);
-    }
-
-    button:disabled {
-      cursor: not-allowed;
-      opacity: 0.48;
-    }
-
-    .btn-process,
-    .btn-download {
-      color: var(--white);
-      background: linear-gradient(135deg, var(--primary), var(--secondary));
-      border-color: transparent;
-    }
-
-    .btn-clear {
-      color: var(--danger);
-      background: #fff7f7;
-      border-color: #fecaca;
-    }
-
-    .btn-remove {
-      min-width: 62px;
-      min-height: 34px;
-      padding: 6px 10px;
-      color: var(--white);
-      background: var(--danger);
-      border: 0;
-      font-size: 0.82rem;
-      flex-shrink: 0;
-    }
-
-    .btn-download {
-      display: none;
-      width: 100%;
-      margin-top: 12px;
-      background: linear-gradient(135deg, var(--success), #0f766e);
-    }
-
-    .btn-download.show {
-      display: block;
-    }
-
-    .msg {
-      display: none;
-      align-items: flex-start;
-      gap: 10px;
-      margin-bottom: 18px;
-      padding: 13px 15px;
-      line-height: 1.7;
-      border-radius: 8px;
-      border: 1px solid transparent;
-    }
-
-    .msg.show {
-      display: flex;
-    }
-
-    .msg.success {
-      color: #14532d;
-      background: #dcfce7;
-      border-color: #86efac;
-    }
-
-    .msg.error {
-      color: #7f1d1d;
-      background: #fee2e2;
-      border-color: #fecaca;
-    }
-
-    .msg.info {
-      color: #1e3a8a;
-      background: #dbeafe;
-      border-color: #bfdbfe;
-    }
-
-    .msg.warning {
-      color: #713f12;
-      background: #fef3c7;
-      border-color: #fde68a;
-    }
-
-    .preview-section {
-      display: none;
-    }
-
-    .preview-section.show {
-      display: block;
-    }
-
-    .preview-head {
-      display: flex;
-      align-items: flex-start;
-      justify-content: space-between;
-      gap: 16px;
-      margin-bottom: 18px;
-      padding-bottom: 16px;
-      border-bottom: 1px solid var(--line);
-    }
-
-    .preview-title {
-      font-size: 1.35rem;
-      font-weight: 900;
-      line-height: 1.4;
-    }
-
-    .source-file {
-      max-width: 320px;
-      color: var(--muted);
-      font-size: 0.86rem;
-      text-align: left;
-      direction: ltr;
-      overflow-wrap: anywhere;
-    }
-
-    .category-block {
-      margin-bottom: 14px;
-      padding: 16px;
-      background: var(--surface);
-      border: 1px solid var(--line);
-      border-radius: 8px;
-    }
-
-    .category-title {
-      margin-bottom: 12px;
-      padding-bottom: 8px;
-      color: var(--primary);
-      font-weight: 900;
-      border-bottom: 1px solid var(--line);
-    }
-
-    .items-grid {
-      display: grid;
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-      gap: 8px;
-    }
-
-    @media (max-width: 620px) {
-      .items-grid {
-        grid-template-columns: 1fr;
-      }
-
-      .preview-head {
-        display: block;
-      }
-
-      .source-file {
-        margin-top: 8px;
-      }
-    }
-
-    .item {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 12px;
-      min-height: 38px;
-      padding: 8px 10px;
-      background: var(--white);
-      border: 1px solid #e8ecf3;
-      border-radius: 6px;
-    }
-
-    .item-key {
-      color: #405066;
-      font-size: 0.88rem;
-      font-weight: 800;
-    }
-
-    .item-value {
-      color: var(--secondary);
-      direction: ltr;
-      font-size: 0.9rem;
-      font-weight: 900;
-      text-align: left;
-      overflow-wrap: anywhere;
-    }
-
-    .empty-state {
-      padding: 54px 18px;
-      color: var(--muted);
-      text-align: center;
-    }
-
-    .empty-state span {
-      display: block;
-      margin-bottom: 14px;
-      font-size: 3rem;
-    }
-
-    .empty-state p {
-      line-height: 1.8;
-    }
-
-    .notes {
-      margin-top: 14px;
-      color: var(--muted);
-      font-size: 0.86rem;
-      line-height: 1.8;
-    }
-
-    footer {
-      margin-top: 28px;
-      padding-top: 16px;
-      color: var(--muted);
-      text-align: center;
-      font-size: 0.86rem;
-      border-top: 1px solid rgba(104, 115, 133, 0.2);
-    }
-  </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>مستخرج Lightroom XMP</title>
+
+<style>
+*{
+    margin:0;
+    padding:0;
+    box-sizing:border-box;
+    font-family:Arial,sans-serif;
+}
+
+body{
+    background:#f5f5f5;
+    padding:20px;
+    color:#222;
+}
+
+.container{
+    max-width:1400px;
+    margin:auto;
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:25px;
+}
+
+.card{
+    background:white;
+    border-radius:20px;
+    padding:25px;
+    box-shadow:0 10px 30px rgba(0,0,0,.08);
+}
+
+h1{
+    margin-bottom:20px;
+    font-size:32px;
+}
+
+.upload-area{
+    border:3px dashed #6c63ff;
+    border-radius:20px;
+    padding:60px 20px;
+    text-align:center;
+    cursor:pointer;
+    transition:.3s;
+    background:#fafaff;
+}
+
+.upload-area:hover{
+    background:#f0efff;
+}
+
+.upload-area.drag{
+    background:#e8e5ff;
+}
+
+.upload-area h2{
+    margin-top:15px;
+}
+
+input[type=file]{
+    display:none;
+}
+
+.file-list{
+    margin-top:20px;
+    max-height:500px;
+    overflow:auto;
+}
+
+.file-item{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    padding:15px;
+    margin-bottom:10px;
+    background:#f8f8f8;
+    border-radius:12px;
+    border-right:5px solid #6c63ff;
+}
+
+.file-name{
+    font-size:14px;
+    word-break:break-all;
+}
+
+.remove-btn{
+    background:#ff4d4d;
+    color:white;
+    border:none;
+    padding:8px 15px;
+    border-radius:8px;
+    cursor:pointer;
+}
+
+.stats{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:15px;
+    margin-top:20px;
+}
+
+.stat-box{
+    background:linear-gradient(135deg,#6c63ff,#8a63ff);
+    color:white;
+    border-radius:15px;
+    padding:20px;
+    text-align:center;
+}
+
+.actions{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:15px;
+    margin-top:20px;
+}
+
+button{
+    border:none;
+    padding:16px;
+    border-radius:12px;
+    cursor:pointer;
+    font-size:16px;
+    font-weight:bold;
+}
+
+.process-btn{
+    background:#6c63ff;
+    color:white;
+}
+
+.clear-btn{
+    background:white;
+    border:2px solid #6c63ff;
+}
+
+.download-btn{
+    width:100%;
+    margin-top:20px;
+    background:#10b981;
+    color:white;
+}
+
+.result-section{
+    margin-bottom:30px;
+}
+
+.result-section h3{
+    margin-bottom:15px;
+    color:#6c63ff;
+    border-bottom:2px solid #eee;
+    padding-bottom:10px;
+}
+
+.grid{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:10px;
+}
+
+.field{
+    background:#f8f8f8;
+    border-radius:10px;
+    padding:12px;
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+}
+
+.field span:first-child{
+    color:#555;
+}
+
+.field span:last-child{
+    font-weight:bold;
+    color:#6c63ff;
+}
+
+.loading{
+    display:none;
+    margin-top:20px;
+    text-align:center;
+}
+
+.loading.active{
+    display:block;
+}
+
+@media(max-width:1000px){
+    .container{
+        grid-template-columns:1fr;
+    }
+}
+</style>
 </head>
+
 <body>
-  <div class="container">
-    <header>
-      <h1>مستخرج معاملات Lightroom</h1>
-      <p>يقرأ إعدادات Lightroom و Camera Raw من بيانات XMP الموجودة داخل الصور أو من ملفات XMP مباشرة.</p>
-      <div class="badge">دقيق: لا يخرج قيما وهمية عند غياب البيانات</div>
-    </header>
 
-    <div id="msg" class="msg"></div>
+<div class="container">
 
-    <main class="main-content">
-      <section class="panel">
-        <div class="panel-inner">
-          <label class="upload-area" id="uploadArea" for="fileInput">
-            <span class="upload-icon">📁</span>
-            <div class="upload-text">اسحب الملفات هنا</div>
-            <div class="upload-hint">أو انقر لاختيار صور JPG / DNG / TIFF أو ملفات XMP، حتى 25 ملفا</div>
-            <input type="file" id="fileInput" multiple accept="image/*,.xmp,.dng,.tif,.tiff,.jpg,.jpeg">
-          </label>
+    <div class="card">
 
-          <div class="file-list" id="fileList">
-            <div id="filesContainer"></div>
-          </div>
+        <h1>📸 مستخرج Lightroom XMP</h1>
 
-          <div class="stats" id="stats">
-            <div class="stat">
-              <div class="stat-number" id="totalCount">0</div>
-              <div class="stat-label">عدد الملفات</div>
+        <label class="upload-area" id="uploadArea">
+            <div>
+                <div style="font-size:60px;">📁</div>
+                <h2>اسحب الصور هنا</h2>
+                <p>أو انقر لاختيار الصور (حتى 25 صورة)</p>
             </div>
-            <div class="stat">
-              <div class="stat-number" id="sizeCount">0 MB</div>
-              <div class="stat-label">الحجم الكلي</div>
+            <input type="file" id="fileInput" multiple accept="image/*">
+        </label>
+
+        <div class="file-list" id="fileList"></div>
+
+        <div class="stats">
+            <div class="stat-box">
+                <h2 id="imageCount">0</h2>
+                <p>عدد الصور</p>
             </div>
-          </div>
 
-          <div class="progress-section" id="progressSection">
-            <div class="progress-label" id="progressLabel">جاري المعالجة...</div>
-            <div class="progress-bar">
-              <div id="progressFill" class="progress-fill"></div>
+            <div class="stat-box">
+                <h2 id="totalSize">0 MB</h2>
+                <p>الحجم الكلي</p>
             </div>
-          </div>
-
-          <div class="btn-group">
-            <button class="btn-process" id="processBtn" disabled type="button">معالجة الملفات</button>
-            <button class="btn-clear" id="clearBtn" type="button">مسح</button>
-          </div>
-
-          <button class="btn-download" id="downloadBtn" type="button">تحميل ملف XMP</button>
-
-          <p class="notes">
-            إذا كانت الصورة مصدرة بدون Metadata فلن توجد إعدادات يمكن استخراجها. للحصول على أدق نتيجة ارفع ملف XMP الأصلي أو صورة تحتوي XMP مضمنا.
-          </p>
         </div>
-      </section>
 
-      <section class="panel">
-        <div class="panel-inner">
-          <div class="preview-section" id="previewSection">
-            <div class="preview-head">
-              <div class="preview-title">البيانات المستخرجة</div>
-              <div class="source-file" id="sourceFile"></div>
-            </div>
-            <div id="previewContent"></div>
-          </div>
+        <div class="actions">
+            <button class="clear-btn" id="clearBtn">
+                🗑️ مسح
+            </button>
 
-          <div class="empty-state" id="emptyState">
-            <span>↢</span>
-            <p>اختر ملفا يحتوي على بيانات Lightroom.</p>
-            <p>ستظهر الإعدادات القابلة للاستخراج هنا.</p>
-          </div>
+            <button class="process-btn" id="processBtn">
+                ⚡ معالجة الصور
+            </button>
         </div>
-      </section>
-    </main>
 
-    <footer>
-      <p>مستخرج XMP محلي يعمل داخل المتصفح بدون رفع الملفات إلى خادم.</p>
-    </footer>
-  </div>
+        <button class="download-btn" id="downloadBtn" disabled>
+            💾 تحميل ملف XMP
+        </button>
 
-  <script>
-    "use strict";
+        <div class="loading" id="loading">
+            جاري تحليل الصور...
+        </div>
 
-    const MAX_FILES = 25;
-    const MAX_FILE_SIZE = 80 * 1024 * 1024;
-    const CRS_NAMESPACE = "http://ns.adobe.com/camera-raw-settings/1.0/";
+    </div>
 
-    let selectedFiles = [];
-    let generatedXmp = "";
-    let lastExtracted = null;
+    <div class="card">
 
-    const uploadArea = document.getElementById("uploadArea");
-    const fileInput = document.getElementById("fileInput");
-    const filesContainer = document.getElementById("filesContainer");
-    const fileList = document.getElementById("fileList");
-    const statsDiv = document.getElementById("stats");
-    const totalCount = document.getElementById("totalCount");
-    const sizeCount = document.getElementById("sizeCount");
-    const processBtn = document.getElementById("processBtn");
-    const clearBtn = document.getElementById("clearBtn");
-    const downloadBtn = document.getElementById("downloadBtn");
-    const progressSection = document.getElementById("progressSection");
-    const progressFill = document.getElementById("progressFill");
-    const progressLabel = document.getElementById("progressLabel");
-    const previewSection = document.getElementById("previewSection");
-    const previewContent = document.getElementById("previewContent");
-    const emptyState = document.getElementById("emptyState");
-    const msgDiv = document.getElementById("msg");
-    const sourceFile = document.getElementById("sourceFile");
+        <h1>📊 البيانات المستخرجة</h1>
 
-    const fieldGroups = {
-      "الضوء": [
-        ["Exposure2012", "Exposure"],
-        ["Contrast2012", "Contrast"],
-        ["Highlights2012", "Highlights"],
-        ["Shadows2012", "Shadows"],
-        ["Whites2012", "Whites"],
-        ["Blacks2012", "Blacks"]
-      ],
-      "الألوان": [
-        ["WhiteBalance", "White Balance"],
-        ["Temperature", "Temperature"],
-        ["Tint", "Tint"],
-        ["Vibrance", "Vibrance"],
-        ["Saturation", "Saturation"]
-      ],
-      "التأثيرات": [
-        ["Texture", "Texture"],
-        ["Clarity2012", "Clarity"],
-        ["Dehaze", "Dehaze"],
-        ["GrainAmount", "Grain Amount"],
-        ["GrainSize", "Grain Size"],
-        ["GrainFrequency", "Grain Frequency"],
-        ["GrainRoughness", "Grain Roughness"],
-        ["PostCropVignetteAmount", "Vignette Amount"],
-        ["PostCropVignetteMidpoint", "Vignette Midpoint"],
-        ["PostCropVignetteFeather", "Vignette Feather"]
-      ],
-      "التفاصيل": [
-        ["Sharpness", "Sharpness"],
-        ["SharpenRadius", "Sharpen Radius"],
-        ["SharpenDetail", "Sharpen Detail"],
-        ["SharpenEdgeMasking", "Sharpen Masking"],
-        ["LuminanceSmoothing", "Noise Reduction"],
-        ["ColorNoiseReduction", "Color Noise Reduction"]
-      ],
-      "مزج الألوان HSL": [
-        ["HueAdjustmentRed", "Red Hue"],
-        ["SaturationAdjustmentRed", "Red Saturation"],
-        ["LuminanceAdjustmentRed", "Red Luminance"],
-        ["HueAdjustmentOrange", "Orange Hue"],
-        ["SaturationAdjustmentOrange", "Orange Saturation"],
-        ["LuminanceAdjustmentOrange", "Orange Luminance"],
-        ["HueAdjustmentYellow", "Yellow Hue"],
-        ["SaturationAdjustmentYellow", "Yellow Saturation"],
-        ["LuminanceAdjustmentYellow", "Yellow Luminance"],
-        ["HueAdjustmentGreen", "Green Hue"],
-        ["SaturationAdjustmentGreen", "Green Saturation"],
-        ["LuminanceAdjustmentGreen", "Green Luminance"],
-        ["HueAdjustmentAqua", "Aqua Hue"],
-        ["SaturationAdjustmentAqua", "Aqua Saturation"],
-        ["LuminanceAdjustmentAqua", "Aqua Luminance"],
-        ["HueAdjustmentBlue", "Blue Hue"],
-        ["SaturationAdjustmentBlue", "Blue Saturation"],
-        ["LuminanceAdjustmentBlue", "Blue Luminance"],
-        ["HueAdjustmentPurple", "Purple Hue"],
-        ["SaturationAdjustmentPurple", "Purple Saturation"],
-        ["LuminanceAdjustmentPurple", "Purple Luminance"],
-        ["HueAdjustmentMagenta", "Magenta Hue"],
-        ["SaturationAdjustmentMagenta", "Magenta Saturation"],
-        ["LuminanceAdjustmentMagenta", "Magenta Luminance"]
-      ],
-      "Color Grading": [
-        ["ColorGradeShadowHue", "Shadow Hue"],
-        ["ColorGradeShadowSat", "Shadow Saturation"],
-        ["ColorGradeMidtoneHue", "Midtone Hue"],
-        ["ColorGradeMidtoneSat", "Midtone Saturation"],
-        ["ColorGradeHighlightHue", "Highlight Hue"],
-        ["ColorGradeHighlightSat", "Highlight Saturation"],
-        ["ColorGradeBlending", "Blending"],
-        ["ColorGradeBalance", "Balance"]
-      ],
-      "المعايرة": [
-        ["RedHue", "Red Primary Hue"],
-        ["RedSaturation", "Red Primary Saturation"],
-        ["GreenHue", "Green Primary Hue"],
-        ["GreenSaturation", "Green Primary Saturation"],
-        ["BlueHue", "Blue Primary Hue"],
-        ["BlueSaturation", "Blue Primary Saturation"]
-      ]
-    };
+        <div id="results"></div>
 
-    const exportedFields = [
-      "ProcessVersion",
-      "ConvertToGrayscale",
-      "CameraProfile",
-      "ProfileName",
-      "Look",
-      "WhiteBalance",
-      "Temperature",
-      "Tint",
-      "Exposure2012",
-      "Contrast2012",
-      "Highlights2012",
-      "Shadows2012",
-      "Whites2012",
-      "Blacks2012",
-      "Texture",
-      "Clarity2012",
-      "Dehaze",
-      "Vibrance",
-      "Saturation",
-      "ParametricShadows",
-      "ParametricDarks",
-      "ParametricLights",
-      "ParametricHighlights",
-      "ParametricShadowSplit",
-      "ParametricMidtoneSplit",
-      "ParametricHighlightSplit",
-      "Sharpness",
-      "SharpenRadius",
-      "SharpenDetail",
-      "SharpenEdgeMasking",
-      "LuminanceSmoothing",
-      "ColorNoiseReduction",
-      "ColorNoiseReductionDetail",
-      "ColorNoiseReductionSmoothness",
-      "GrainAmount",
-      "GrainSize",
-      "GrainFrequency",
-      "GrainRoughness",
-      "PostCropVignetteAmount",
-      "PostCropVignetteMidpoint",
-      "PostCropVignetteFeather",
-      "PostCropVignetteRoundness",
-      "PostCropVignetteStyle",
-      "HueAdjustmentRed",
-      "SaturationAdjustmentRed",
-      "LuminanceAdjustmentRed",
-      "HueAdjustmentOrange",
-      "SaturationAdjustmentOrange",
-      "LuminanceAdjustmentOrange",
-      "HueAdjustmentYellow",
-      "SaturationAdjustmentYellow",
-      "LuminanceAdjustmentYellow",
-      "HueAdjustmentGreen",
-      "SaturationAdjustmentGreen",
-      "LuminanceAdjustmentGreen",
-      "HueAdjustmentAqua",
-      "SaturationAdjustmentAqua",
-      "LuminanceAdjustmentAqua",
-      "HueAdjustmentBlue",
-      "SaturationAdjustmentBlue",
-      "LuminanceAdjustmentBlue",
-      "HueAdjustmentPurple",
-      "SaturationAdjustmentPurple",
-      "LuminanceAdjustmentPurple",
-      "HueAdjustmentMagenta",
-      "SaturationAdjustmentMagenta",
-      "LuminanceAdjustmentMagenta",
-      "SplitToningShadowHue",
-      "SplitToningShadowSaturation",
-      "SplitToningHighlightHue",
-      "SplitToningHighlightSaturation",
-      "SplitToningBalance",
-      "ColorGradeShadowHue",
-      "ColorGradeShadowSat",
-      "ColorGradeMidtoneHue",
-      "ColorGradeMidtoneSat",
-      "ColorGradeHighlightHue",
-      "ColorGradeHighlightSat",
-      "ColorGradeGlobalHue",
-      "ColorGradeGlobalSat",
-      "ColorGradeBlending",
-      "ColorGradeBalance",
-      "RedHue",
-      "RedSaturation",
-      "GreenHue",
-      "GreenSaturation",
-      "BlueHue",
-      "BlueSaturation",
-      "PerspectiveUpright",
-      "PerspectiveVertical",
-      "PerspectiveHorizontal",
-      "PerspectiveRotate",
-      "PerspectiveScale",
-      "PerspectiveAspect",
-      "PerspectiveX",
-      "PerspectiveY",
-      "LensProfileEnable",
-      "LensManualDistortionAmount",
-      "VignetteAmount",
-      "DefringePurpleAmount",
-      "DefringePurpleHueLo",
-      "DefringePurpleHueHi",
-      "DefringeGreenAmount",
-      "DefringeGreenHueLo",
-      "DefringeGreenHueHi"
-    ];
+    </div>
 
-    const curveFields = [
-      "ToneCurvePV2012",
-      "ToneCurvePV2012Red",
-      "ToneCurvePV2012Green",
-      "ToneCurvePV2012Blue"
-    ];
+</div>
 
-    uploadArea.addEventListener("dragover", event => {
-      event.preventDefault();
-      uploadArea.classList.add("dragover");
-    });
+<script>
 
-    uploadArea.addEventListener("dragleave", () => {
-      uploadArea.classList.remove("dragover");
-    });
+const API_URL = "/api/process";
 
-    uploadArea.addEventListener("drop", event => {
-      event.preventDefault();
-      uploadArea.classList.remove("dragover");
-      addFiles(event.dataTransfer.files);
-    });
+let uploadedFiles = [];
+let extractedData = null;
+let xmpBlob = null;
 
-    fileInput.addEventListener("change", event => {
-      addFiles(event.target.files);
-      fileInput.value = "";
-    });
+const fileInput = document.getElementById("fileInput");
+const uploadArea = document.getElementById("uploadArea");
+const fileList = document.getElementById("fileList");
+const imageCount = document.getElementById("imageCount");
+const totalSize = document.getElementById("totalSize");
+const processBtn = document.getElementById("processBtn");
+const clearBtn = document.getElementById("clearBtn");
+const results = document.getElementById("results");
+const loading = document.getElementById("loading");
+const downloadBtn = document.getElementById("downloadBtn");
 
-    processBtn.addEventListener("click", processFiles);
-    clearBtn.addEventListener("click", clearAll);
-    downloadBtn.addEventListener("click", downloadXmp);
+uploadArea.addEventListener("click",()=>{
+    fileInput.click();
+});
 
-    function showMsg(text, type = "info") {
-      const icons = {
-        success: "تم",
-        error: "خطأ",
-        info: "تنبيه",
-        warning: "تحذير"
-      };
+fileInput.addEventListener("change",(e)=>{
+    addFiles(e.target.files);
+});
 
-      msgDiv.textContent = "";
+uploadArea.addEventListener("dragover",(e)=>{
+    e.preventDefault();
+    uploadArea.classList.add("drag");
+});
 
-      const icon = document.createElement("strong");
-      icon.textContent = icons[type] || "تنبيه";
+uploadArea.addEventListener("dragleave",()=>{
+    uploadArea.classList.remove("drag");
+});
 
-      const body = document.createElement("span");
-      body.textContent = text;
+uploadArea.addEventListener("drop",(e)=>{
+    e.preventDefault();
+    uploadArea.classList.remove("drag");
+    addFiles(e.dataTransfer.files);
+});
 
-      msgDiv.append(icon, body);
-      msgDiv.className = `msg show ${type}`;
+function addFiles(files){
 
-      if (type !== "info") {
-        window.setTimeout(() => msgDiv.classList.remove("show"), 7000);
-      }
-    }
+    for(let file of files){
 
-    function addFiles(fileListValue) {
-      const incoming = Array.from(fileListValue);
-      const accepted = [];
-      const rejected = [];
-      const availableSlots = MAX_FILES - selectedFiles.length;
-
-      for (const file of incoming) {
-        const duplicate = selectedFiles.some(current => current.name === file.name && current.size === file.size);
-
-        if (!isReadableFile(file)) {
-          rejected.push(`${file.name}: نوع غير مدعوم`);
-          continue;
+        if(uploadedFiles.length >= 25){
+            alert("الحد الأقصى 25 صورة");
+            break;
         }
 
-        if (file.size > MAX_FILE_SIZE) {
-          rejected.push(`${file.name}: الحجم أكبر من 80MB`);
-          continue;
-        }
-
-        if (!duplicate && accepted.length < availableSlots) {
-          accepted.push(file);
-        }
-      }
-
-      selectedFiles = selectedFiles.concat(accepted);
-      generatedXmp = "";
-      lastExtracted = null;
-      resetPreview();
-      updateUI();
-
-      if (incoming.length > accepted.length + rejected.length || selectedFiles.length === MAX_FILES && incoming.length > accepted.length) {
-        showMsg(`تم قبول ${selectedFiles.length} ملف كحد أقصى.`, "warning");
-      } else if (rejected.length) {
-        showMsg(`تم تجاهل بعض الملفات: ${rejected.slice(0, 2).join(" | ")}`, "warning");
-      } else if (accepted.length) {
-        showMsg(`تمت إضافة ${accepted.length} ملف.`, "success");
-      }
+        uploadedFiles.push(file);
     }
 
-    function isReadableFile(file) {
-      const name = file.name.toLowerCase();
-      return file.type.startsWith("image/") || /\.(xmp|dng|tif|tiff|jpg|jpeg)$/i.test(name);
-    }
+    renderFiles();
+}
 
-    function updateUI() {
-      filesContainer.textContent = "";
-      downloadBtn.classList.toggle("show", Boolean(generatedXmp));
+function renderFiles(){
 
-      if (selectedFiles.length === 0) {
-        fileList.style.display = "none";
-        statsDiv.style.display = "none";
-        processBtn.disabled = true;
-        return;
-      }
+    fileList.innerHTML = "";
 
-      let total = 0;
+    uploadedFiles.forEach((file,index)=>{
 
-      selectedFiles.forEach((file, index) => {
-        total += file.size;
-
-        const row = document.createElement("div");
-        row.className = "file-item";
-
-        const info = document.createElement("div");
-        const name = document.createElement("div");
-        name.className = "file-name";
-        name.textContent = file.name;
-
-        const meta = document.createElement("div");
-        meta.className = "file-meta";
-        meta.textContent = `${formatBytes(file.size)} - ${file.type || "file"}`;
-
-        const remove = document.createElement("button");
-        remove.className = "btn-remove";
-        remove.type = "button";
-        remove.textContent = "حذف";
-        remove.addEventListener("click", () => removeFile(index));
-
-        info.append(name, meta);
-        row.append(info, remove);
-        filesContainer.appendChild(row);
-      });
-
-      totalCount.textContent = selectedFiles.length;
-      sizeCount.textContent = formatBytes(total);
-      fileList.style.display = "block";
-      statsDiv.style.display = "grid";
-      processBtn.disabled = false;
-    }
-
-    function removeFile(index) {
-      selectedFiles.splice(index, 1);
-      generatedXmp = "";
-      lastExtracted = null;
-      updateUI();
-      resetPreview();
-    }
-
-    function clearAll() {
-      selectedFiles = [];
-      generatedXmp = "";
-      lastExtracted = null;
-      fileInput.value = "";
-      updateUI();
-      resetPreview();
-      showMsg("تم مسح الملفات والنتائج.", "info");
-    }
-
-    async function processFiles() {
-      if (!selectedFiles.length) {
-        showMsg("اختر ملفا واحدا على الأقل.", "warning");
-        return;
-      }
-
-      processBtn.disabled = true;
-      progressSection.classList.add("show");
-      progressFill.style.width = "0%";
-      progressLabel.textContent = "جاري قراءة البيانات...";
-      generatedXmp = "";
-      lastExtracted = null;
-      resetPreview();
-
-      try {
-        const results = [];
-
-        for (let index = 0; index < selectedFiles.length; index += 1) {
-          const file = selectedFiles[index];
-          progressLabel.textContent = `جاري فحص ${file.name}`;
-          progressFill.style.width = `${Math.round((index / selectedFiles.length) * 80)}%`;
-          results.push(await extractFromFile(file));
-        }
-
-        const valid = results.filter(result => result.ok && hasExtractedData(result));
-        progressFill.style.width = "100%";
-
-        if (!valid.length) {
-          const reason = results.find(result => result.error)?.error || "لم يتم العثور على إعدادات Lightroom داخل الملفات.";
-          showMsg(reason, "error");
-          return;
-        }
-
-        lastExtracted = valid[0];
-        generatedXmp = buildPresetXmp(lastExtracted.settings, lastExtracted.curves);
-        showPreview(lastExtracted);
-        updateUI();
-
-        const differs = valid.some(result => createSignature(result) !== createSignature(valid[0]));
-
-        if (differs) {
-          showMsg("تم العثور على أكثر من ملف بإعدادات مختلفة. استخدمت أول ملف صحيح للمعاينة والتحميل.", "warning");
-        } else if (valid.length < selectedFiles.length) {
-          showMsg(`تم استخراج البيانات من ${valid.length} من أصل ${selectedFiles.length} ملف.`, "warning");
-        } else {
-          showMsg(`تم استخراج بيانات Lightroom من ${valid.length} ملف بنجاح.`, "success");
-        }
-      } catch (error) {
-        showMsg(`حدث خطأ أثناء المعالجة: ${error.message}`, "error");
-      } finally {
-        processBtn.disabled = false;
-        window.setTimeout(() => progressSection.classList.remove("show"), 900);
-      }
-    }
-
-    async function extractFromFile(file) {
-      const buffer = await file.arrayBuffer();
-      const text = decodeFileText(buffer);
-      const xmp = findXmpPacket(text);
-
-      if (!xmp) {
-        return {
-          ok: false,
-          fileName: file.name,
-          settings: {},
-          curves: {},
-          error: `لم أجد XMP داخل ${file.name}. ارفع ملف XMP أو صورة مصدرة مع تضمين Metadata.`
-        };
-      }
-
-      const parsed = parseXmp(xmp);
-
-      if (!hasExtractedData(parsed)) {
-        return {
-          ok: false,
-          fileName: file.name,
-          settings: {},
-          curves: {},
-          error: `وجدت XMP داخل ${file.name} لكن بدون حقول Lightroom أو Camera Raw قابلة للاستخراج.`
-        };
-      }
-
-      return {
-        ok: true,
-        fileName: file.name,
-        settings: parsed.settings,
-        curves: parsed.curves,
-        rawXmp: xmp
-      };
-    }
-
-    function decodeFileText(buffer) {
-      const bytes = new Uint8Array(buffer);
-
-      if (bytes[0] === 0xff && bytes[1] === 0xfe) {
-        return decodeWith("utf-16le", buffer);
-      }
-
-      if (bytes[0] === 0xfe && bytes[1] === 0xff) {
-        return decodeWith("utf-16be", buffer);
-      }
-
-      const utf8Text = decodeWith("utf-8", buffer);
-      if (findXmpPacket(utf8Text)) {
-        return utf8Text;
-      }
-
-      return decodeWith("iso-8859-1", buffer) || utf8Text;
-    }
-
-    function decodeWith(encoding, buffer) {
-      try {
-        return new TextDecoder(encoding, { fatal: false }).decode(buffer);
-      } catch {
-        return "";
-      }
-    }
-
-    function findXmpPacket(text) {
-      if (!text) {
-        return "";
-      }
-
-      const packets = [
-        /<x:xmpmeta[\s\S]*?<\/x:xmpmeta>/i,
-        /<rdf:RDF[\s\S]*?<\/rdf:RDF>/i
-      ];
-
-      for (const pattern of packets) {
-        const match = text.match(pattern);
-        if (match) {
-          return match[0];
-        }
-      }
-
-      return "";
-    }
-
-    function parseXmp(xmpText) {
-      const parser = new DOMParser();
-      const doc = parser.parseFromString(xmpText, "application/xml");
-      const parserError = doc.querySelector("parsererror");
-
-      if (parserError) {
-        throw new Error("تعذر قراءة XMP لأن XML غير صالح.");
-      }
-
-      const settings = {};
-      const curves = {};
-      const descriptions = Array.from(doc.getElementsByTagNameNS("*", "Description"));
-
-      for (const description of descriptions) {
-        for (const attr of Array.from(description.attributes)) {
-          const key = stripCrsPrefix(attr.name);
-          const belongsToCrs = attr.namespaceURI === CRS_NAMESPACE || attr.name.toLowerCase().startsWith("crs:");
-
-          if (belongsToCrs && isExportableCameraRawField(key)) {
-            settings[key] = attr.value;
-          }
-        }
-
-        extractSimpleCrsChildren(description, settings);
-
-        for (const curveField of curveFields) {
-          extractSeq(description, curveField, curves);
-        }
-      }
-
-      return { settings, curves };
-    }
-
-    function stripCrsPrefix(name) {
-      return name.replace(/^crs:/i, "");
-    }
-
-    function isExportableCameraRawField(key) {
-      return exportedFields.includes(key);
-    }
-
-    function extractSimpleCrsChildren(description, settings) {
-      for (const child of Array.from(description.children)) {
-        const key = child.localName || stripCrsPrefix(child.nodeName);
-        const belongsToCrs = child.namespaceURI === CRS_NAMESPACE || child.nodeName.toLowerCase().startsWith("crs:");
-        const hasNestedElements = child.children.length > 0;
-
-        if (belongsToCrs && !hasNestedElements && isExportableCameraRawField(key)) {
-          const value = child.textContent.trim();
-          if (value !== "") {
-            settings[key] = value;
-          }
-        }
-      }
-    }
-
-    function extractSeq(description, fieldName, output) {
-      const nodes = Array.from(description.getElementsByTagNameNS("*", fieldName));
-      if (!nodes.length) {
-        return;
-      }
-
-      const values = Array.from(nodes[0].getElementsByTagNameNS("*", "li"))
-        .map(node => node.textContent.trim())
-        .filter(Boolean);
-
-      if (values.length) {
-        output[fieldName] = values;
-      }
-    }
-
-    function hasExtractedData(result) {
-      return Object.keys(result.settings || {}).length > 0 || Object.keys(result.curves || {}).length > 0;
-    }
-
-    function showPreview(result) {
-      emptyState.style.display = "none";
-      previewSection.classList.add("show");
-      sourceFile.textContent = result.fileName;
-      previewContent.textContent = "";
-
-      let renderedCount = 0;
-
-      for (const [category, fields] of Object.entries(fieldGroups)) {
-        const values = fields
-          .filter(([key]) => Object.prototype.hasOwnProperty.call(result.settings, key))
-          .map(([key, label]) => [label, result.settings[key]]);
-
-        if (values.length) {
-          renderedCount += values.length;
-          previewContent.appendChild(createCategory(category, values));
-        }
-      }
-
-      const otherValues = Object.entries(result.settings)
-        .filter(([key]) => !fieldExistsInGroups(key))
-        .sort(([a], [b]) => a.localeCompare(b))
-        .map(([key, value]) => [key, value]);
-
-      if (otherValues.length) {
-        renderedCount += otherValues.length;
-        previewContent.appendChild(createCategory("حقول إضافية", otherValues));
-      }
-
-      if (Object.keys(result.curves).length) {
-        const curveValues = Object.entries(result.curves).map(([key, value]) => [key, value.join(" | ")]);
-        renderedCount += curveValues.length;
-        previewContent.appendChild(createCategory("المنحنيات", curveValues));
-      }
-
-      if (!renderedCount) {
-        previewContent.appendChild(createCategory("النتيجة", [["الحالة", "لا توجد حقول قابلة للعرض"]]));
-      }
-    }
-
-    function createCategory(title, values) {
-      const block = document.createElement("div");
-      block.className = "category-block";
-
-      const heading = document.createElement("div");
-      heading.className = "category-title";
-      heading.textContent = title;
-
-      const grid = document.createElement("div");
-      grid.className = "items-grid";
-
-      for (const [key, value] of values) {
         const item = document.createElement("div");
-        item.className = "item";
+        item.className = "file-item";
 
-        const keyEl = document.createElement("span");
-        keyEl.className = "item-key";
-        keyEl.textContent = key;
+        item.innerHTML = `
+            <div>
+                <div class="file-name">${file.name}</div>
+                <small>${(file.size / 1024).toFixed(1)} KB</small>
+            </div>
 
-        const valueEl = document.createElement("span");
-        valueEl.className = "item-value";
-        valueEl.textContent = value;
+            <button class="remove-btn" onclick="removeFile(${index})">
+                حذف
+            </button>
+        `;
 
-        item.append(keyEl, valueEl);
-        grid.appendChild(item);
-      }
-
-      block.append(heading, grid);
-      return block;
-    }
-
-    function fieldExistsInGroups(key) {
-      return Object.values(fieldGroups).some(fields => fields.some(([field]) => field === key));
-    }
-
-    function buildPresetXmp(settings, curves) {
-      const presetName = "Extracted Lightroom Preset";
-      const uuid = createUuid();
-      const finalSettings = {
-        ProcessVersion: settings.ProcessVersion || "11.0",
-        ConvertToGrayscale: settings.ConvertToGrayscale || "False",
-        ...pickExportedSettings(settings)
-      };
-
-      const lines = [
-        '<?xml version="1.0" encoding="UTF-8"?>',
-        '<x:xmpmeta xmlns:x="adobe:ns:meta/" x:xmptk="Lightroom XMP Extractor">',
-        '  <rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">',
-        '    <rdf:Description',
-        '      rdf:about=""',
-        `      xmlns:crs="${CRS_NAMESPACE}"`,
-        '      crs:PresetType="Normal"',
-        '      crs:Cluster="User Presets"',
-        `      crs:UUID="${escapeXml(uuid)}"`,
-        `      crs:Name="${escapeXml(presetName)}"`
-      ];
-
-      for (const [key, value] of Object.entries(finalSettings)) {
-        if (value !== undefined && value !== null && value !== "") {
-          lines.push(`      crs:${key}="${escapeXml(String(value))}"`);
-        }
-      }
-
-      const curveKeys = Object.keys(curves || {});
-
-      if (!curveKeys.length) {
-        lines[lines.length - 1] += " />";
-      } else {
-        lines[lines.length - 1] += ">";
-
-        for (const key of curveKeys) {
-          lines.push(`      <crs:${key}>`);
-          lines.push("        <rdf:Seq>");
-
-          for (const point of curves[key]) {
-            lines.push(`          <rdf:li>${escapeXml(point)}</rdf:li>`);
-          }
-
-          lines.push("        </rdf:Seq>");
-          lines.push(`      </crs:${key}>`);
-        }
-
-        lines.push("    </rdf:Description>");
-      }
-
-      lines.push("  </rdf:RDF>");
-      lines.push("</x:xmpmeta>");
-
-      return lines.join("\n");
-    }
-
-    function pickExportedSettings(settings) {
-      const picked = {};
-
-      for (const key of exportedFields) {
-        if (Object.prototype.hasOwnProperty.call(settings, key)) {
-          picked[key] = settings[key];
-        }
-      }
-
-      return picked;
-    }
-
-    function downloadXmp() {
-      if (!generatedXmp) {
-        showMsg("لا يوجد ملف XMP جاهز للتحميل.", "warning");
-        return;
-      }
-
-      const blob = new Blob([generatedXmp], { type: "application/rdf+xml;charset=utf-8" });
-      const url = URL.createObjectURL(blob);
-      const link = document.createElement("a");
-      link.href = url;
-      link.download = "Extracted_Lightroom_Preset.xmp";
-      document.body.appendChild(link);
-      link.click();
-      link.remove();
-      URL.revokeObjectURL(url);
-      showMsg("تم تحميل ملف XMP بنجاح.", "success");
-    }
-
-    function resetPreview() {
-      previewSection.classList.remove("show");
-      emptyState.style.display = "block";
-      previewContent.textContent = "";
-      sourceFile.textContent = "";
-      downloadBtn.classList.remove("show");
-    }
-
-    function formatBytes(bytes) {
-      if (!bytes) {
-        return "0 B";
-      }
-
-      const units = ["B", "KB", "MB", "GB"];
-      const index = Math.min(Math.floor(Math.log(bytes) / Math.log(1024)), units.length - 1);
-      const value = bytes / Math.pow(1024, index);
-      return `${value.toFixed(index === 0 ? 0 : 2)} ${units[index]}`;
-    }
-
-    function createUuid() {
-      const cryptoApi = window.crypto || window.msCrypto;
-
-      if (cryptoApi && typeof cryptoApi.randomUUID === "function") {
-        return cryptoApi.randomUUID().toUpperCase();
-      }
-
-      if (cryptoApi && typeof cryptoApi.getRandomValues === "function") {
-        const bytes = cryptoApi.getRandomValues(new Uint8Array(16));
-        bytes[6] = (bytes[6] & 0x0f) | 0x40;
-        bytes[8] = (bytes[8] & 0x3f) | 0x80;
-        const hex = Array.from(bytes, byte => byte.toString(16).padStart(2, "0"));
-
-        return [
-          hex.slice(0, 4).join(""),
-          hex.slice(4, 6).join(""),
-          hex.slice(6, 8).join(""),
-          hex.slice(8, 10).join(""),
-          hex.slice(10, 16).join("")
-        ].join("-").toUpperCase();
-      }
-
-      return `LOCAL-${Date.now()}-${Math.random().toString(16).slice(2)}`.toUpperCase();
-    }
-
-    function createSignature(result) {
-      return JSON.stringify({
-        settings: sortObject(result.settings || {}),
-        curves: sortObject(result.curves || {})
-      });
-    }
-
-    function sortObject(value) {
-      return Object.keys(value)
-        .sort()
-        .reduce((accumulator, key) => {
-          accumulator[key] = value[key];
-          return accumulator;
-        }, {});
-    }
-
-    function escapeXml(value) {
-      return String(value)
-        .replace(/&/g, "&amp;")
-        .replace(/"/g, "&quot;")
-        .replace(/</g, "&lt;")
-        .replace(/>/g, "&gt;");
-    }
-
-    window.addEventListener("load", () => {
-      showMsg("اختر ملفا يحتوي على XMP. إذا لم توجد Metadata فلن يتم إنشاء نتيجة غير حقيقية.", "info");
+        fileList.appendChild(item);
     });
-  </script>
+
+    imageCount.innerText = uploadedFiles.length;
+
+    const total = uploadedFiles.reduce((a,b)=>a+b.size,0);
+
+    totalSize.innerText = (total / (1024*1024)).toFixed(2) + " MB";
+}
+
+function removeFile(index){
+
+    uploadedFiles.splice(index,1);
+
+    renderFiles();
+}
+
+clearBtn.addEventListener("click",()=>{
+
+    uploadedFiles = [];
+    extractedData = null;
+    xmpBlob = null;
+
+    fileList.innerHTML = "";
+    results.innerHTML = "";
+
+    imageCount.innerText = 0;
+    totalSize.innerText = "0 MB";
+
+    downloadBtn.disabled = true;
+});
+
+processBtn.addEventListener("click", async ()=>{
+
+    if(uploadedFiles.length === 0){
+        alert("قم برفع الصور أولاً");
+        return;
+    }
+
+    loading.classList.add("active");
+
+    try{
+
+        const formData = new FormData();
+
+        uploadedFiles.forEach(file=>{
+            formData.append("images",file);
+        });
+
+        const response = await fetch(API_URL,{
+            method:"POST",
+            body:formData
+        });
+
+        if(!response.ok){
+            throw new Error("فشل السيرفر");
+        }
+
+        const data = await response.json();
+
+        extractedData = data.settings;
+
+        xmpBlob = new Blob(
+            [data.xmp],
+            {type:"application/rdf+xml"}
+        );
+
+        renderResults(extractedData);
+
+        downloadBtn.disabled = false;
+
+    }catch(error){
+
+        console.error(error);
+
+        alert("حدث خطأ أثناء التحليل");
+
+    }finally{
+
+        loading.classList.remove("active");
+    }
+
+});
+
+downloadBtn.addEventListener("click",()=>{
+
+    if(!xmpBlob) return;
+
+    const url = URL.createObjectURL(xmpBlob);
+
+    const a = document.createElement("a");
+
+    a.href = url;
+    a.download = "preset.xmp";
+
+    document.body.appendChild(a);
+
+    a.click();
+
+    a.remove();
+
+    URL.revokeObjectURL(url);
+});
+
+function renderResults(data){
+
+    results.innerHTML = "";
+
+    for(const section in data){
+
+        const block = document.createElement("div");
+
+        block.className = "result-section";
+
+        let html = `
+            <h3>${section}</h3>
+            <div class="grid">
+        `;
+
+        for(const key in data[section]){
+
+            html += `
+                <div class="field">
+                    <span>${key}</span>
+                    <span>${data[section][key]}</span>
+                </div>
+            `;
+        }
+
+        html += `
+            </div>
+        `;
+
+        block.innerHTML = html;
+
+        results.appendChild(block);
+    }
+}
+
+</script>
+
 </body>
 </html>
