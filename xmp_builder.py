@@ -1,115 +1,181 @@
-from xml.sax.saxutils import escape
+from xml.etree.ElementTree import Element, SubElement, tostring
+from xml.dom.minidom import parseString
 
-CRS_NS = "http://ns.adobe.com/camera-raw-settings/1.0/"
+
+# =========================================================
+# Lightroom XMP Mapping
+# =========================================================
+
+LIGHTROOM_FIELD_MAP = {
+    # Light
+    "Exposure": "crs:Exposure2012",
+    "Contrast": "crs:Contrast2012",
+    "Highlights": "crs:Highlights2012",
+    "Shadows": "crs:Shadows2012",
+    "Whites": "crs:Whites2012",
+    "Blacks": "crs:Blacks2012",
+
+    # Effects
+    "Texture": "crs:Texture",
+    "Clarity": "crs:Clarity2012",
+    "Dehaze": "crs:Dehaze",
+    "Vibrance": "crs:Vibrance",
+    "Saturation": "crs:Saturation",
+
+    "Grain Amount": "crs:GrainAmount",
+    "Grain Size": "crs:GrainSize",
+    "Grain Roughness": "crs:GrainFrequency",
+
+    # HSL
+    "Red Hue": "crs:HueAdjustmentRed",
+    "Red Saturation": "crs:SaturationAdjustmentRed",
+    "Red Luminance": "crs:LuminanceAdjustmentRed",
+
+    "Orange Hue": "crs:HueAdjustmentOrange",
+    "Orange Saturation": "crs:SaturationAdjustmentOrange",
+    "Orange Luminance": "crs:LuminanceAdjustmentOrange",
+
+    "Yellow Hue": "crs:HueAdjustmentYellow",
+    "Yellow Saturation": "crs:SaturationAdjustmentYellow",
+    "Yellow Luminance": "crs:LuminanceAdjustmentYellow",
+
+    "Green Hue": "crs:HueAdjustmentGreen",
+    "Green Saturation": "crs:SaturationAdjustmentGreen",
+    "Green Luminance": "crs:LuminanceAdjustmentGreen",
+
+    "Cyan Hue": "crs:HueAdjustmentAqua",
+    "Cyan Saturation": "crs:SaturationAdjustmentAqua",
+    "Cyan Luminance": "crs:LuminanceAdjustmentAqua",
+
+    "Blue Hue": "crs:HueAdjustmentBlue",
+    "Blue Saturation": "crs:SaturationAdjustmentBlue",
+    "Blue Luminance": "crs:LuminanceAdjustmentBlue",
+
+    "Purple Hue": "crs:HueAdjustmentPurple",
+    "Purple Saturation": "crs:SaturationAdjustmentPurple",
+    "Purple Luminance": "crs:LuminanceAdjustmentPurple",
+
+    "Magenta Hue": "crs:HueAdjustmentMagenta",
+    "Magenta Saturation": "crs:SaturationAdjustmentMagenta",
+    "Magenta Luminance": "crs:LuminanceAdjustmentMagenta",
+}
 
 
-def _format_value(value):
-    if isinstance(value, bool):
-        return "True" if value else "False"
+# =========================================================
+# Helpers
+# =========================================================
+
+def format_value(value):
+    if isinstance(value, float):
+        return f"{value:.2f}".rstrip("0").rstrip(".")
     return str(value)
 
 
-def _curve_point_to_text(point):
-    if isinstance(point, (list, tuple)):
-        return ",".join(str(item) for item in point)
-    return str(point)
+# =========================================================
+# Build XMP
+# =========================================================
 
+def build_xmp(settings):
 
-def build_xmp(normalized_preset):
-    meta = normalized_preset.get("meta", {})
-    settings = normalized_preset.get("settings", {})
-    curves = normalized_preset.get("curves", {})
+    xmpmeta = Element(
+        "x:xmpmeta",
+        {
+            "xmlns:x": "adobe:ns:meta/",
+            "x:xmptk": "Adobe XMP Core"
+        }
+    )
 
-    lines = [
-        '<?xml version="1.0" encoding="UTF-8"?>',
-        '<x:xmpmeta xmlns:x="adobe:ns:meta/" x:xmptk="OpenAI Lightroom XMP Builder">',
-        '  <rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">',
-        '    <rdf:Description rdf:about="" xmlns:crs="http://ns.adobe.com/camera-raw-settings/1.0/"',
-    ]
+    rdf = SubElement(
+        xmpmeta,
+        "rdf:RDF",
+        {
+            "xmlns:rdf": "http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+        }
+    )
 
-    base_attrs = {
-        "ProcessVersion": meta.get("ProcessVersion", "11.0"),
-        "ConvertToGrayscale": meta.get("ConvertToGrayscale", "False"),
-        "CameraProfile": meta.get("CameraProfile", "Adobe Standard"),
-        "Name": meta.get("Name", "Extracted Lightroom Preset"),
-        "PresetType": "Normal",
-        "Cluster": "User Presets",
-    }
+    description = SubElement(
+        rdf,
+        "rdf:Description",
+        {
+            "rdf:about": "",
+            "xmlns:crs": "http://ns.adobe.com/camera-raw-settings/1.0/",
+            "crs:Version": "15.0",
+            "crs:ProcessVersion": "11.0",
+        }
+    )
 
-    for key, value in base_attrs.items():
-        lines.append(f'      crs:{key}="{escape(_format_value(value))}"')
+    # =====================================================
+    # Light
+    # =====================================================
 
-    settings_order = [
-        "Exposure2012",
-        "Contrast2012",
-        "Highlights2012",
-        "Shadows2012",
-        "Whites2012",
-        "Blacks2012",
-        "Clarity2012",
-        "Dehaze",
-        "Texture",
-        "Vibrance",
-        "Saturation",
-        "GrainAmount",
-        "GrainSize",
-        "GrainRoughness",
-        "HueAdjustmentRed",
-        "SaturationAdjustmentRed",
-        "LuminanceAdjustmentRed",
-        "HueAdjustmentOrange",
-        "SaturationAdjustmentOrange",
-        "LuminanceAdjustmentOrange",
-        "HueAdjustmentYellow",
-        "SaturationAdjustmentYellow",
-        "LuminanceAdjustmentYellow",
-        "HueAdjustmentGreen",
-        "SaturationAdjustmentGreen",
-        "LuminanceAdjustmentGreen",
-        "HueAdjustmentAqua",
-        "SaturationAdjustmentAqua",
-        "LuminanceAdjustmentAqua",
-        "HueAdjustmentBlue",
-        "SaturationAdjustmentBlue",
-        "LuminanceAdjustmentBlue",
-        "HueAdjustmentPurple",
-        "SaturationAdjustmentPurple",
-        "LuminanceAdjustmentPurple",
-        "HueAdjustmentMagenta",
-        "SaturationAdjustmentMagenta",
-        "LuminanceAdjustmentMagenta",
-    ]
+    for key, value in settings.get("Light", {}).items():
+        if key in LIGHTROOM_FIELD_MAP:
+            description.set(
+                LIGHTROOM_FIELD_MAP[key],
+                format_value(value)
+            )
 
-    for key in settings_order:
-        if key in settings:
-            lines.append(f'      crs:{key}="{escape(_format_value(settings[key]))}"')
+    # =====================================================
+    # Effects
+    # =====================================================
 
-    curve_order = [
-        "ToneCurvePV2012",
-        "ToneCurvePV2012Red",
-        "ToneCurvePV2012Green",
-        "ToneCurvePV2012Blue",
-    ]
+    for key, value in settings.get("Effects", {}).items():
+        if key in LIGHTROOM_FIELD_MAP:
+            description.set(
+                LIGHTROOM_FIELD_MAP[key],
+                format_value(value)
+            )
 
-    if not curves:
-        lines[-1] += " />"
-    else:
-        lines[-1] += ">"
-        for key in curve_order:
-            curve_points = curves.get(key)
-            if not curve_points:
-                continue
+    # =====================================================
+    # HSL
+    # =====================================================
 
-            lines.append(f"      <crs:{key}>")
-            lines.append("        <rdf:Seq>")
-            for point in curve_points:
-                lines.append(f"          <rdf:li>{escape(_curve_point_to_text(point))}</rdf:li>")
-            lines.append("        </rdf:Seq>")
-            lines.append(f"      </crs:{key}>")
+    for key, value in settings.get("HSL", {}).items():
+        if key in LIGHTROOM_FIELD_MAP:
+            description.set(
+                LIGHTROOM_FIELD_MAP[key],
+                format_value(value)
+            )
 
-        lines.append("    </rdf:Description>")
+    # =====================================================
+    # Default Lightroom Flags
+    # =====================================================
 
-    lines.append("  </rdf:RDF>")
-    lines.append("</x:xmpmeta>")
+    description.set("crs:HasSettings", "True")
+    description.set("crs:HasCrop", "False")
+    description.set("crs:AlreadyApplied", "False")
 
-    return "\n".join(lines)
+    # =====================================================
+    # Curves
+    # =====================================================
+
+    tone_curve = settings.get("Curves", {}).get("RGB")
+
+    if tone_curve and isinstance(tone_curve, list):
+
+        curve_seq = SubElement(
+            description,
+            "crs:ToneCurvePV2012"
+        )
+
+        seq = SubElement(
+            curve_seq,
+            "rdf:Seq"
+        )
+
+        for point in tone_curve:
+            li = SubElement(seq, "rdf:li")
+            li.text = point
+
+    # =====================================================
+    # Pretty XML
+    # =====================================================
+
+    xml_bytes = tostring(
+        xmpmeta,
+        encoding="utf-8"
+    )
+
+    parsed = parseString(xml_bytes)
+
+    return parsed.toprettyxml(indent="  ")
