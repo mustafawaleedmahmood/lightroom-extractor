@@ -1,27 +1,28 @@
-import json
 import os
-from flask import Flask, jsonify, request, send_file
+import base64
+import binascii
+from typing import Any, List
+
+from flask import Flask, jsonify, request
 from flask_cors import CORS
 
+from image_parser import extract_from_images
 from lightroom_schema import normalize_preset_payload
 from xmp_builder import build_xmp
 from xmp_validator import validate_xmp_content
 
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-
 app = Flask(__name__)
 CORS(app)
+
+MAX_FILES = 25
 
 
 @app.get("/")
 def home():
-    index_path = os.path.join(BASE_DIR, "index.html")
-    if os.path.exists(index_path):
-        return send_file(index_path)
     return jsonify({
-        "success": False,
-        "error": "index.html not found"
-    }), 404
+        "success": True,
+        "message": "Lightroom XMP Extractor API is running"
+    }), 200
 
 
 @app.get("/api/health")
@@ -32,59 +33,90 @@ def health():
     }), 200
 
 
-def _read_payload():
-    """
-    Accepts:
-    1) application/json
-    2) multipart/form-data with presetData field
-    """
-    payload = request.get_json(silent=True)
-    if isinstance(payload, dict) and payload:
-        return payload
+def _decode_data_url(value: str) -> bytes:
+    if not isinstance(value, str) or not value.strip():
+        raise ValueError("Empty data URL")
 
-    raw = request.form.get("presetData")
-    if raw:
-        try:
-            parsed = json.loads(raw)
-            if isinstance(parsed, dict):
-                return parsed
-        except json.JSONDecodeError:
-            pass
+    if "," in value:
+        value = value.split(",", 1)[1]
 
-    return None
+    try:
+        return base64.b64decode(value, validate=False)
+    except (binascii.Error, ValueError) as exc:
+        raise ValueError("Invalid base64 image data") from exc
+
+
+def _collect_images() -> List[Any]:
+    """
+    Supports:
+    1) multipart/form-data with files under key: images
+    2) application/json with images=[{name,data}, ...]
+    """
+    uploaded_files = request.files.getlist("images")
+    if uploaded_files:
+        return uploaded_files[:MAX_FILES]
+
+    payload = request.get_json(silent=True) or {}
+    images = payload.get("images", [])
+
+    if not isinstance(images, list) or not images:
+        return []
+
+    decoded_images: List[bytes] = []
+    for item in images[:MAX_FILES]:
+        if not isinstance(item, dict):
+            continue
+
+        data = item.get("data")
+        if not data:
+            continue
+
+        decoded_images.append(_decode_data_url(data))
+
+    return decoded_images
 
 
 @app.post("/api/process")
 def process():
-    payload = _read_payload()
+    try:
+        images = _collect_images()
 
-    if not payload:
+        if not images:
+            return jsonify({
+                "success": False,
+                "error": "No images received"
+            }), 400
+
+        extracted = extract_from_images(images)
+        normalized = normalize_preset_payload(extracted)
+
+        xmp_text = build_xmp(normalized["canonical"])
+        validation = validate_xmp_content(xmp_text, normalized["canonical"])
+
+        if not validation["success"]:
+            return jsonify({
+                "success": False,
+                "error": validation["error"],
+                "settings": normalized["display"],
+                "canonical": normalized["canonical"],
+                "sources": extracted.get("sources", [])
+            }), 500
+
+        return jsonify({
+            "success": True,
+            "message": f"Processed {len(images)} file(s)",
+            "settings": normalized["display"],
+            "canonical": normalized["canonical"],
+            "sources": extracted.get("sources", []),
+            "xmp": xmp_text,
+            "validation": validation
+        }), 200
+
+    except Exception as exc:
         return jsonify({
             "success": False,
-            "error": (
-                "No presetData payload received. "
-                "Send the extracted Lightroom data from the frontend."
-            )
-        }), 400
-
-    normalized = normalize_preset_payload(payload)
-    xmp_text = build_xmp(normalized)
-    validation = validate_xmp_content(xmp_text, normalized)
-
-    if not validation["success"]:
-        return jsonify({
-            "success": False,
-            "error": validation["error"]
+            "error": str(exc)
         }), 500
-
-    return jsonify({
-        "success": True,
-        "message": "XMP generated successfully",
-        "settings": normalized["display"],
-        "canonical": normalized["canonical"],
-        "xmp": xmp_text,
-        "validation": validation
-    }), 200
 
 
 @app.get("/api/stats")
@@ -92,9 +124,9 @@ def stats():
     return jsonify({
         "success": True,
         "stats": {
-            "sections": 4,
-            "supports_json_payload": True,
-            "supports_form_payload": True
+            "max_files": MAX_FILES,
+            "supports_multipart": True,
+            "supports_json_base64": True
         }
     }), 200
 
