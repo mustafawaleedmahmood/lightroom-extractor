@@ -223,10 +223,25 @@ def extract_from_images(files):
 
         for variant in variants:
 
-            text = pytesseract.image_to_string(
-                variant,
-                config='--oem 3 --psm 6'
-            )
+           all_text = []
+
+configs = [
+    '--oem 3 --psm 6',
+    '--oem 3 --psm 11',
+    '--oem 3 --psm 4',
+    '--oem 3 --psm 12'
+]
+
+for cfg in configs:
+
+    extracted = pytesseract.image_to_string(
+        variant,
+        config=cfg
+    )
+
+    all_text.append(extracted)
+
+text = "\n".join(all_text)
 
             parsed = parse_text(text)
 
