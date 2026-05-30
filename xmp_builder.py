@@ -1,181 +1,153 @@
-from xml.etree.ElementTree import Element, SubElement, tostring
-from xml.dom.minidom import parseString
+from xml.dom import minidom
+from xml.etree import ElementTree as ET
+
+from lightroom_schema import (
+    CRS_NS,
+    DEFAULT_CURVES,
+    DEFAULT_META,
+    DEFAULT_SETTINGS,
+    RDF_NS,
+    X_NS,
+    normalize_preset_payload,
+)
 
 
-# =========================================================
-# Lightroom XMP Mapping
-# =========================================================
+ET.register_namespace("x", X_NS)
+ET.register_namespace("rdf", RDF_NS)
+ET.register_namespace("crs", CRS_NS)
 
-LIGHTROOM_FIELD_MAP = {
-    # Light
-    "Exposure": "crs:Exposure2012",
-    "Contrast": "crs:Contrast2012",
-    "Highlights": "crs:Highlights2012",
-    "Shadows": "crs:Shadows2012",
-    "Whites": "crs:Whites2012",
-    "Blacks": "crs:Blacks2012",
-
-    # Effects
-    "Texture": "crs:Texture",
-    "Clarity": "crs:Clarity2012",
-    "Dehaze": "crs:Dehaze",
-    "Vibrance": "crs:Vibrance",
-    "Saturation": "crs:Saturation",
-
-    "Grain Amount": "crs:GrainAmount",
-    "Grain Size": "crs:GrainSize",
-    "Grain Roughness": "crs:GrainFrequency",
-
-    # HSL
-    "Red Hue": "crs:HueAdjustmentRed",
-    "Red Saturation": "crs:SaturationAdjustmentRed",
-    "Red Luminance": "crs:LuminanceAdjustmentRed",
-
-    "Orange Hue": "crs:HueAdjustmentOrange",
-    "Orange Saturation": "crs:SaturationAdjustmentOrange",
-    "Orange Luminance": "crs:LuminanceAdjustmentOrange",
-
-    "Yellow Hue": "crs:HueAdjustmentYellow",
-    "Yellow Saturation": "crs:SaturationAdjustmentYellow",
-    "Yellow Luminance": "crs:LuminanceAdjustmentYellow",
-
-    "Green Hue": "crs:HueAdjustmentGreen",
-    "Green Saturation": "crs:SaturationAdjustmentGreen",
-    "Green Luminance": "crs:LuminanceAdjustmentGreen",
-
-    "Cyan Hue": "crs:HueAdjustmentAqua",
-    "Cyan Saturation": "crs:SaturationAdjustmentAqua",
-    "Cyan Luminance": "crs:LuminanceAdjustmentAqua",
-
-    "Blue Hue": "crs:HueAdjustmentBlue",
-    "Blue Saturation": "crs:SaturationAdjustmentBlue",
-    "Blue Luminance": "crs:LuminanceAdjustmentBlue",
-
-    "Purple Hue": "crs:HueAdjustmentPurple",
-    "Purple Saturation": "crs:SaturationAdjustmentPurple",
-    "Purple Luminance": "crs:LuminanceAdjustmentPurple",
-
-    "Magenta Hue": "crs:HueAdjustmentMagenta",
-    "Magenta Saturation": "crs:SaturationAdjustmentMagenta",
-    "Magenta Luminance": "crs:LuminanceAdjustmentMagenta",
-}
+XML_NS = "http://www.w3.org/XML/1998/namespace"
 
 
-# =========================================================
-# Helpers
-# =========================================================
+META_ATTRIBUTE_ORDER = [
+    "PresetType",
+    "Cluster",
+    "UUID",
+    "SupportsAmount",
+    "SupportsColor",
+    "SupportsMonochrome",
+    "SupportsHighDynamicRange",
+    "SupportsNormalDynamicRange",
+    "SupportsSceneReferred",
+    "SupportsOutputReferred",
+    "CameraModelRestriction",
+    "Copyright",
+    "ContactInfo",
+    "Version",
+    "ProcessVersion",
+]
+
+
+SETTING_ATTRIBUTE_ORDER = list(DEFAULT_SETTINGS.keys())
+
+
+def _crs_attr(name):
+    return f"{{{CRS_NS}}}{name}"
+
+
+def _rdf_attr(name):
+    return f"{{{RDF_NS}}}{name}"
+
+
+def _crs_tag(name):
+    return f"{{{CRS_NS}}}{name}"
+
+
+def _rdf_tag(name):
+    return f"{{{RDF_NS}}}{name}"
+
+
+def _xml_attr(name):
+    return f"{{{XML_NS}}}{name}"
+
 
 def format_value(value):
+    if isinstance(value, bool):
+        return "True" if value else "False"
     if isinstance(value, float):
         return f"{value:.2f}".rstrip("0").rstrip(".")
     return str(value)
 
 
-# =========================================================
-# Build XMP
-# =========================================================
+def _is_linear_curve(points):
+    return list(points or []) == ["0, 0", "255, 255"]
 
-def build_xmp(settings):
 
-    xmpmeta = Element(
-        "x:xmpmeta",
-        {
-            "xmlns:x": "adobe:ns:meta/",
-            "x:xmptk": "Adobe XMP Core"
-        }
+def _append_localized_alt(parent, tag_name, text=""):
+    container = ET.SubElement(parent, _crs_tag(tag_name))
+    alt = ET.SubElement(container, _rdf_tag("Alt"))
+    li = ET.SubElement(alt, _rdf_tag("li"), {_xml_attr("lang"): "x-default"})
+    li.text = text or ""
+    return container
+
+
+def _append_curve(description, curve_name, points):
+    curve = ET.SubElement(description, _crs_tag(curve_name))
+    seq = ET.SubElement(curve, _rdf_tag("Seq"))
+    for point in points:
+        li = ET.SubElement(seq, _rdf_tag("li"))
+        li.text = str(point)
+
+
+def _prettify(root):
+    raw = ET.tostring(root, encoding="utf-8")
+    pretty = minidom.parseString(raw).toprettyxml(indent="  ", encoding="UTF-8")
+    lines = [
+        line for line in pretty.decode("utf-8").splitlines()
+        if line.strip()
+    ]
+    return "\n".join(lines) + "\n"
+
+
+def build_xmp(preset):
+    """
+    Build a Lightroom-compatible XMP preset from the canonical payload:
+    {
+        "meta": {...},
+        "settings": {"Exposure2012": 0.8, ...},
+        "curves": {"ToneCurvePV2012": ["0, 0", "255, 255"], ...}
+    }
+    Display-shaped payloads are accepted and normalized before serialization.
+    """
+    normalized = normalize_preset_payload(preset).get("canonical", {})
+
+    meta = {**DEFAULT_META, **normalized.get("meta", {})}
+    settings = {**DEFAULT_SETTINGS, **normalized.get("settings", {})}
+    curves = {**DEFAULT_CURVES, **normalized.get("curves", {})}
+
+    any_custom_curve = any(
+        not _is_linear_curve(points)
+        for points in curves.values()
     )
+    settings["ToneCurveName2012"] = "Custom" if any_custom_curve else "Linear"
 
-    rdf = SubElement(
-        xmpmeta,
-        "rdf:RDF",
-        {
-            "xmlns:rdf": "http://www.w3.org/1999/02/22-rdf-syntax-ns#"
-        }
+    xmpmeta = ET.Element(
+        f"{{{X_NS}}}xmpmeta",
+        {f"{{{X_NS}}}xmptk": "Adobe XMP Core"},
     )
+    rdf = ET.SubElement(xmpmeta, _rdf_tag("RDF"))
+    description = ET.SubElement(rdf, _rdf_tag("Description"), {_rdf_attr("about"): ""})
 
-    description = SubElement(
-        rdf,
-        "rdf:Description",
-        {
-            "rdf:about": "",
-            "xmlns:crs": "http://ns.adobe.com/camera-raw-settings/1.0/",
-            "crs:Version": "15.0",
-            "crs:ProcessVersion": "11.0",
-        }
-    )
+    for key in META_ATTRIBUTE_ORDER:
+        if key in meta and meta[key] not in (None, ""):
+            description.set(_crs_attr(key), format_value(meta[key]))
 
-    # =====================================================
-    # Light
-    # =====================================================
+    for key in SETTING_ATTRIBUTE_ORDER:
+        if key in settings and settings[key] not in (None, ""):
+            description.set(_crs_attr(key), format_value(settings[key]))
 
-    for key, value in settings.get("Light", {}).items():
-        if key in LIGHTROOM_FIELD_MAP:
-            description.set(
-                LIGHTROOM_FIELD_MAP[key],
-                format_value(value)
-            )
+    description.set(_crs_attr("HasSettings"), "True")
 
-    # =====================================================
-    # Effects
-    # =====================================================
+    _append_localized_alt(description, "Name", meta.get("Name", "Extracted Lightroom Preset"))
+    _append_localized_alt(description, "ShortName", meta.get("ShortName", ""))
+    _append_localized_alt(description, "SortName", meta.get("SortName", ""))
+    _append_localized_alt(description, "Group", meta.get("Group", "User Presets"))
+    _append_localized_alt(description, "Description", meta.get("Description", ""))
 
-    for key, value in settings.get("Effects", {}).items():
-        if key in LIGHTROOM_FIELD_MAP:
-            description.set(
-                LIGHTROOM_FIELD_MAP[key],
-                format_value(value)
-            )
+    for curve_name in DEFAULT_CURVES.keys():
+        points = curves.get(curve_name) or DEFAULT_CURVES[curve_name]
+        _append_curve(description, curve_name, points)
 
-    # =====================================================
-    # HSL
-    # =====================================================
+    ET.SubElement(description, _crs_tag("Look"), {_crs_attr("Name"): ""})
 
-    for key, value in settings.get("HSL", {}).items():
-        if key in LIGHTROOM_FIELD_MAP:
-            description.set(
-                LIGHTROOM_FIELD_MAP[key],
-                format_value(value)
-            )
-
-    # =====================================================
-    # Default Lightroom Flags
-    # =====================================================
-
-    description.set("crs:HasSettings", "True")
-    description.set("crs:HasCrop", "False")
-    description.set("crs:AlreadyApplied", "False")
-
-    # =====================================================
-    # Curves
-    # =====================================================
-
-    tone_curve = settings.get("Curves", {}).get("RGB")
-
-    if tone_curve and isinstance(tone_curve, list):
-
-        curve_seq = SubElement(
-            description,
-            "crs:ToneCurvePV2012"
-        )
-
-        seq = SubElement(
-            curve_seq,
-            "rdf:Seq"
-        )
-
-        for point in tone_curve:
-            li = SubElement(seq, "rdf:li")
-            li.text = point
-
-    # =====================================================
-    # Pretty XML
-    # =====================================================
-
-    xml_bytes = tostring(
-        xmpmeta,
-        encoding="utf-8"
-    )
-
-    parsed = parseString(xml_bytes)
-
-    return parsed.toprettyxml(indent="  ")
+    return _prettify(xmpmeta)
