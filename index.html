@@ -3,815 +3,430 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>مستخرج Lightroom XMP</title>
+  <title>Lightroom XMP Extractor</title>
   <style>
-    * {
-      box-sizing: border-box;
-      margin: 0;
-      padding: 0;
-      font-family: Arial, sans-serif;
-    }
-
-    :root {
-      --bg: #f4f6fb;
-      --card: #ffffff;
-      --ink: #1f2937;
-      --muted: #6b7280;
-      --line: #e5e7eb;
-      --primary: #6c63ff;
-      --primary2: #7c3aed;
-      --danger: #ef4444;
-      --success: #10b981;
-    }
-
+    * { box-sizing: border-box; }
     body {
+      margin: 0;
       min-height: 100vh;
-      background: linear-gradient(135deg, #eef2ff 0%, #f8fafc 45%, #f3e8ff 100%);
-      color: var(--ink);
+      font-family: Arial, sans-serif;
+      background: #f4f6fb;
+      color: #172033;
       padding: 20px;
     }
-
     .container {
-      max-width: 1500px;
+      max-width: 1440px;
       margin: 0 auto;
       display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 24px;
+      grid-template-columns: minmax(320px, 0.9fr) minmax(360px, 1.1fr);
+      gap: 18px;
       align-items: start;
     }
-
-    @media (max-width: 1024px) {
-      .container {
-        grid-template-columns: 1fr;
-      }
+    @media (max-width: 980px) {
+      .container { grid-template-columns: 1fr; }
     }
-
-    .card {
-      background: rgba(255, 255, 255, 0.94);
-      border: 1px solid rgba(229, 231, 235, 0.95);
-      border-radius: 22px;
-      box-shadow: 0 18px 50px rgba(31, 41, 55, 0.10);
+    .panel {
+      background: #fff;
+      border: 1px solid #dfe5f2;
+      border-radius: 8px;
+      box-shadow: 0 8px 28px rgba(23, 32, 51, 0.08);
       overflow: hidden;
     }
-
-    .card-inner {
-      padding: 24px;
+    .panel-body { padding: 20px; }
+    h1 {
+      margin: 0 0 8px;
+      font-size: 28px;
+      line-height: 1.25;
     }
-
-    .header {
-      margin-bottom: 18px;
-      text-align: center;
-    }
-
-    .header h1 {
-      font-size: clamp(1.7rem, 4vw, 2.8rem);
-      line-height: 1.2;
-      margin-bottom: 8px;
-    }
-
-    .header p {
-      color: var(--muted);
-      line-height: 1.8;
-    }
-
-    .badge {
-      display: inline-flex;
-      align-items: center;
-      gap: 8px;
-      margin-top: 12px;
-      padding: 8px 14px;
-      border-radius: 999px;
-      background: #111827;
-      color: #fff;
-      font-weight: 700;
-      font-size: 0.9rem;
-    }
-
-    .msg {
-      display: none;
-      align-items: flex-start;
-      gap: 10px;
-      margin-bottom: 16px;
-      padding: 14px 16px;
-      border-radius: 14px;
-      border: 1px solid transparent;
-      line-height: 1.8;
-    }
-
-    .msg.show {
-      display: flex;
-    }
-
-    .msg.info {
-      background: #dbeafe;
-      border-color: #bfdbfe;
-      color: #1e3a8a;
-    }
-
-    .msg.success {
-      background: #dcfce7;
-      border-color: #bbf7d0;
-      color: #14532d;
-    }
-
-    .msg.error {
-      background: #fee2e2;
-      border-color: #fecaca;
-      color: #7f1d1d;
-    }
-
-    .msg.warning {
-      background: #fef3c7;
-      border-color: #fde68a;
-      color: #713f12;
-    }
-
-    .upload-area {
-      border: 2px dashed var(--primary);
-      border-radius: 18px;
-      padding: 34px 18px;
-      text-align: center;
-      background: linear-gradient(180deg, #fbfbff 0%, #f7f7ff 100%);
-      cursor: pointer;
-      transition: transform .18s ease, background .18s ease, border-color .18s ease;
-      user-select: none;
-    }
-
-    .upload-area:hover,
-    .upload-area.dragover {
-      transform: translateY(-2px);
-      border-color: var(--primary2);
-      background: #f3f0ff;
-    }
-
-    .upload-emoji {
-      font-size: 3.4rem;
-      line-height: 1;
-      margin-bottom: 10px;
-      display: block;
-    }
-
-    .upload-title {
-      font-size: 1.2rem;
-      font-weight: 800;
-      margin-bottom: 6px;
-    }
-
-    .upload-subtitle {
-      color: var(--muted);
+    .muted {
+      color: #607086;
       line-height: 1.7;
-      font-size: 0.95rem;
+      margin: 0 0 16px;
     }
-
-    #fileInput {
-      display: none;
+    .upload {
+      display: block;
+      border: 2px dashed #3b82f6;
+      border-radius: 8px;
+      padding: 28px 18px;
+      text-align: center;
+      background: #f8fbff;
+      cursor: pointer;
+      transition: background 0.15s ease, border-color 0.15s ease;
     }
-
-    .file-list {
-      display: none;
-      margin-top: 18px;
-      max-height: 280px;
+    .upload.dragover {
+      background: #eef6ff;
+      border-color: #1d4ed8;
+    }
+    .upload strong {
+      display: block;
+      margin-bottom: 6px;
+      font-size: 18px;
+    }
+    .upload span { color: #607086; }
+    input[type=file] { display: none; }
+    .files {
+      margin-top: 14px;
+      display: grid;
+      gap: 8px;
+      max-height: 260px;
       overflow: auto;
     }
-
-    .file-item {
-      display: flex;
+    .file {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 10px;
       align-items: center;
-      justify-content: space-between;
-      gap: 12px;
-      padding: 12px 14px;
-      margin-bottom: 10px;
-      background: #f8fafc;
-      border: 1px solid var(--line);
-      border-radius: 14px;
-    }
-
-    .file-info {
-      min-width: 0;
-    }
-
-    .file-name {
-      font-size: 0.94rem;
-      font-weight: 700;
-      overflow-wrap: anywhere;
-    }
-
-    .file-meta {
-      color: var(--muted);
-      font-size: 0.8rem;
-      margin-top: 4px;
+      padding: 10px 12px;
+      border: 1px solid #e5eaf3;
+      border-radius: 8px;
+      background: #fbfcff;
       direction: ltr;
-      text-align: right;
+      text-align: left;
     }
-
-    .remove-btn {
-      border: none;
-      background: var(--danger);
-      color: #fff;
-      border-radius: 10px;
-      padding: 8px 12px;
+    button {
+      border: 0;
+      border-radius: 8px;
+      min-height: 44px;
+      padding: 0 16px;
       font-weight: 700;
       cursor: pointer;
-      flex-shrink: 0;
     }
-
-    .stats {
-      display: none;
-      grid-template-columns: 1fr 1fr;
-      gap: 14px;
-      margin-top: 18px;
+    button:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
     }
-
-    .stat {
-      border-radius: 18px;
-      padding: 18px;
-      text-align: center;
-      color: #fff;
-      background: linear-gradient(135deg, var(--primary), var(--primary2));
-      box-shadow: 0 10px 25px rgba(108, 99, 255, 0.22);
-    }
-
-    .stat-number {
-      font-size: 1.7rem;
-      font-weight: 900;
-      margin-bottom: 4px;
-    }
-
-    .stat-label {
-      opacity: 0.95;
-      font-size: 0.88rem;
-    }
-
+    .primary { background: #2563eb; color: #fff; }
+    .secondary { background: #edf2f7; color: #172033; }
+    .danger { background: #ef4444; color: #fff; min-height: 36px; }
+    .success { background: #059669; color: #fff; width: 100%; margin-top: 12px; }
     .actions {
       display: grid;
       grid-template-columns: 1fr 1fr;
-      gap: 14px;
-      margin-top: 18px;
-    }
-
-    @media (max-width: 520px) {
-      .actions,
-      .stats {
-        grid-template-columns: 1fr;
-      }
-    }
-
-    button {
-      border: none;
-      border-radius: 14px;
-      min-height: 50px;
-      font-size: 1rem;
-      font-weight: 800;
-      cursor: pointer;
-      transition: transform .16s ease, opacity .16s ease;
-    }
-
-    button:hover:not(:disabled) {
-      transform: translateY(-1px);
-    }
-
-    button:disabled {
-      opacity: .5;
-      cursor: not-allowed;
-    }
-
-    .process-btn {
-      background: linear-gradient(135deg, var(--primary), var(--primary2));
-      color: #fff;
-    }
-
-    .clear-btn {
-      background: #fff;
-      border: 2px solid var(--primary);
-      color: var(--ink);
-    }
-
-    .download-btn {
-      display: none;
-      width: 100%;
+      gap: 10px;
       margin-top: 14px;
-      background: linear-gradient(135deg, var(--success), #0f766e);
-      color: #fff;
     }
-
-    .download-btn.show {
-      display: block;
-    }
-
-    .progress {
+    .message {
       display: none;
-      margin-top: 16px;
+      margin: 0 0 14px;
+      padding: 12px 14px;
+      border-radius: 8px;
+      line-height: 1.7;
+      border: 1px solid transparent;
     }
-
-    .progress.show {
-      display: block;
+    .message.show { display: block; }
+    .message.info { background: #eff6ff; border-color: #bfdbfe; color: #1e3a8a; }
+    .message.ok { background: #ecfdf5; border-color: #a7f3d0; color: #065f46; }
+    .message.warn { background: #fffbeb; border-color: #fde68a; color: #92400e; }
+    .message.err { background: #fef2f2; border-color: #fecaca; color: #991b1b; }
+    .summary {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 10px;
+      margin: 14px 0 0;
     }
-
-    .progress-label {
-      font-size: 0.92rem;
-      font-weight: 700;
-      margin-bottom: 8px;
-    }
-
-    .progress-bar {
-      width: 100%;
-      height: 10px;
-      border-radius: 999px;
-      background: #e5e7eb;
-      overflow: hidden;
-    }
-
-    .progress-fill {
-      height: 100%;
-      width: 0%;
-      background: linear-gradient(90deg, var(--primary), var(--primary2));
-      transition: width .18s ease;
-    }
-
-    .hint {
-      margin-top: 16px;
-      color: var(--muted);
-      line-height: 1.8;
-      font-size: 0.92rem;
-      background: #f8fafc;
-      border: 1px solid var(--line);
-      border-radius: 14px;
-      padding: 14px 16px;
-    }
-
-    .results-title {
-      font-size: 1.35rem;
-      font-weight: 900;
-      margin-bottom: 16px;
-    }
-
-    .empty-state {
-      padding: 70px 16px;
+    .summary div {
+      padding: 12px;
+      border: 1px solid #e5eaf3;
+      border-radius: 8px;
+      background: #fbfcff;
       text-align: center;
-      color: var(--muted);
-      border: 1px dashed #c7d2fe;
-      border-radius: 18px;
-      background: rgba(255,255,255,.55);
     }
-
-    .empty-state .icon {
-      font-size: 3rem;
+    .summary strong {
+      display: block;
+      font-size: 20px;
+      color: #2563eb;
+      direction: ltr;
+    }
+    .empty {
+      min-height: 320px;
+      display: grid;
+      place-items: center;
+      text-align: center;
+      color: #607086;
+      border: 1px dashed #cbd5e1;
+      border-radius: 8px;
+      padding: 18px;
+    }
+    .section {
+      border: 1px solid #e5eaf3;
+      border-radius: 8px;
+      overflow: hidden;
       margin-bottom: 12px;
     }
-
-    .section {
-      margin-bottom: 16px;
-      border: 1px solid var(--line);
-      border-radius: 18px;
-      overflow: hidden;
-      background: #fff;
+    .section h2 {
+      margin: 0;
+      padding: 10px 12px;
+      font-size: 16px;
+      background: #f8fafc;
+      border-bottom: 1px solid #e5eaf3;
+      color: #1d4ed8;
     }
-
-    .section-head {
-      padding: 14px 16px;
-      font-weight: 900;
-      color: var(--primary);
-      background: #fafaff;
-      border-bottom: 1px solid var(--line);
-    }
-
     .grid {
       display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 10px;
-      padding: 14px;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 8px;
+      padding: 10px;
     }
-
-    @media (max-width: 560px) {
-      .grid {
-        grid-template-columns: 1fr;
-      }
+    @media (max-width: 620px) {
+      .grid, .actions, .summary { grid-template-columns: 1fr; }
     }
-
     .field {
       display: flex;
-      align-items: center;
       justify-content: space-between;
-      gap: 12px;
-      padding: 10px 12px;
-      border-radius: 12px;
-      background: #f8fafc;
-      border: 1px solid #eef2ff;
+      gap: 10px;
+      border: 1px solid #eef2f7;
+      background: #fbfcff;
+      border-radius: 8px;
+      padding: 9px 10px;
     }
-
-    .field .k {
-      color: #374151;
+    .field span:last-child {
+      direction: ltr;
       font-weight: 700;
-      font-size: 0.92rem;
+      color: #172033;
     }
-
-    .field .v {
-      color: var(--primary2);
-      font-weight: 900;
+    pre {
       direction: ltr;
       text-align: left;
-      overflow-wrap: anywhere;
-    }
-
-    .preview-box {
-      margin-top: 12px;
+      white-space: pre-wrap;
+      max-height: 300px;
+      overflow: auto;
       padding: 14px;
-      border: 1px solid var(--line);
-      border-radius: 16px;
+      border-radius: 8px;
       background: #0f172a;
       color: #e5e7eb;
-      font-size: 0.88rem;
-      direction: ltr;
-      white-space: pre-wrap;
-      overflow: auto;
-      max-height: 280px;
+      font-size: 12px;
     }
-
-    .small-note {
-      margin-top: 10px;
-      color: var(--muted);
-      font-size: 0.88rem;
+    .warnings {
+      margin-top: 12px;
+      padding: 12px;
+      background: #fffbeb;
+      border: 1px solid #fde68a;
+      border-radius: 8px;
+      color: #92400e;
       line-height: 1.7;
     }
   </style>
 </head>
 <body>
-  <div class="container">
-    <section class="card">
-      <div class="card-inner">
-        <div class="header">
-          <h1>📸 مستخرج Lightroom XMP</h1>
-          <p>هذه الواجهة جاهزة للربط مع مرحلة الاستخراج الفعلية. لا يوجد أي preset وهمي هنا.</p>
-          <div class="badge">API-ready • clean pipeline • no fake fallback</div>
-        </div>
+  <main class="container">
+    <section class="panel">
+      <div class="panel-body">
+        <h1>مستخرج Lightroom XMP</h1>
+        <p class="muted">ارفع صور إعدادات Lightroom Mobile. السيرفر يستخرج القيم، يطبعها في XMP متوافق مع Adobe Camera Raw، ثم يتحقق أن كل قيمة وصلت إلى الملف النهائي.</p>
 
-        <div id="msg" class="msg"></div>
+        <div id="message" class="message info show">اختر صور الإعدادات ثم اضغط معالجة الصور.</div>
 
-        <label id="uploadArea" class="upload-area" for="fileInput">
-          <span class="upload-emoji">📁</span>
-          <div class="upload-title">اسحب الصور هنا</div>
-          <div class="upload-subtitle">أو انقر لاختيار صور Lightroom / screenshots / XMP sources (حتى 25 ملفًا)</div>
-          <input id="fileInput" type="file" multiple accept="image/*,.xmp,.dng,.tif,.tiff,.jpg,.jpeg,.png">
+        <label id="upload" class="upload" for="fileInput">
+          <strong>اسحب الصور هنا أو اضغط للاختيار</strong>
+          <span>JPG / PNG / WEBP / TIFF حتى 25 صورة</span>
+          <input id="fileInput" type="file" multiple accept="image/jpeg,image/png,image/webp,image/tiff" />
         </label>
 
-        <div id="fileList" class="file-list"></div>
+        <div id="files" class="files"></div>
 
-        <div class="stats" id="stats">
-          <div class="stat">
-            <div class="stat-number" id="fileCount">0</div>
-            <div class="stat-label">عدد الملفات</div>
-          </div>
-          <div class="stat">
-            <div class="stat-number" id="totalSize">0 MB</div>
-            <div class="stat-label">الحجم الكلي</div>
-          </div>
-        </div>
-
-        <div class="progress" id="progressWrap">
-          <div class="progress-label" id="progressLabel">جاري التحليل...</div>
-          <div class="progress-bar"><div id="progressFill" class="progress-fill"></div></div>
+        <div class="summary">
+          <div><strong id="fileCount">0</strong>ملفات</div>
+          <div><strong id="totalSize">0 MB</strong>الحجم</div>
+          <div><strong id="detectedCount">0</strong>حقول مكتشفة</div>
         </div>
 
         <div class="actions">
-          <button class="process-btn" id="processBtn" type="button" disabled>⚡ معالجة الصور</button>
-          <button class="clear-btn" id="clearBtn" type="button">🗑️ مسح</button>
+          <button id="processBtn" class="primary" type="button" disabled>معالجة الصور</button>
+          <button id="clearBtn" class="secondary" type="button">مسح</button>
         </div>
-
-        <button class="download-btn" id="downloadBtn" type="button" disabled>💾 تحميل ملف XMP</button>
-
-        <div class="hint">
-          عندما تضيف ملف <b>image_parser.py</b> لاحقًا، ستتحول هذه الواجهة من ناقل ملفات إلى مسار استخراج حقيقي.  
-          الآن هذه الصفحة لا تكذب على المستخدم: لا توجد قيم demo ولا fallback مزيف.
-        </div>
-
-        <div class="small-note">
-          إذا كان الـ backend الحالي ما يزال ينتظر <code>presetData</code> وليس الصور نفسها، فهذه الصفحة جاهزة لتوصيله بالمرحلة التالية فقط.  
-          الملف التالي الذي سنبنيه هو <b>image_parser.py</b>.
-        </div>
+        <button id="downloadBtn" class="success" type="button" disabled style="display:none;">تحميل ملف XMP</button>
       </div>
     </section>
 
-    <section class="card">
-      <div class="card-inner">
-        <div class="results-title">📊 البيانات المستخرجة</div>
-        <div id="resultsArea" class="empty-state">
-          <div class="icon">↘</div>
-          <div>لا توجد بيانات بعد.</div>
-          <div style="margin-top:8px;">بعد ربط parser الحقيقي ستظهر الحقول هنا.</div>
-        </div>
-
-        <div id="xmpPreviewWrap" style="display:none; margin-top:16px;">
-          <div style="font-weight:900; margin-bottom:10px; color: var(--primary);">معاينة XMP</div>
-          <div id="xmpPreview" class="preview-box"></div>
-        </div>
+    <section class="panel">
+      <div class="panel-body">
+        <div id="results" class="empty">لا توجد نتائج بعد.</div>
+        <div id="warnings" class="warnings" style="display:none;"></div>
+        <pre id="xmpPreview" style="display:none;"></pre>
       </div>
     </section>
-  </div>
+  </main>
 
   <script>
     "use strict";
 
     const MAX_FILES = 25;
-    const MAX_SIZE_BYTES = 80 * 1024 * 1024;
-
-    const uploadArea = document.getElementById("uploadArea");
+    const API_URL = "/api/process";
+    const upload = document.getElementById("upload");
     const fileInput = document.getElementById("fileInput");
-    const fileList = document.getElementById("fileList");
+    const filesBox = document.getElementById("files");
+    const message = document.getElementById("message");
     const fileCount = document.getElementById("fileCount");
     const totalSize = document.getElementById("totalSize");
+    const detectedCount = document.getElementById("detectedCount");
     const processBtn = document.getElementById("processBtn");
     const clearBtn = document.getElementById("clearBtn");
     const downloadBtn = document.getElementById("downloadBtn");
-    const msg = document.getElementById("msg");
-    const stats = document.getElementById("stats");
-    const progressWrap = document.getElementById("progressWrap");
-    const progressFill = document.getElementById("progressFill");
-    const progressLabel = document.getElementById("progressLabel");
-    const resultsArea = document.getElementById("resultsArea");
-    const xmpPreviewWrap = document.getElementById("xmpPreviewWrap");
+    const results = document.getElementById("results");
+    const warningsBox = document.getElementById("warnings");
     const xmpPreview = document.getElementById("xmpPreview");
 
-    const API_URL = "/api/process";
-
     let selectedFiles = [];
-    let downloadedXmp = "";
+    let currentXmp = "";
 
-    function showMsg(text, type = "info") {
-      msg.className = `msg show ${type}`;
-      msg.innerHTML = `<strong>${type === "success" ? "تم" : type === "error" ? "خطأ" : type === "warning" ? "تنبيه" : "معلومة"}</strong><span>${text}</span>`;
-      if (type !== "info") {
-        window.clearTimeout(showMsg._t);
-        showMsg._t = window.setTimeout(() => msg.classList.remove("show"), 7000);
-      }
+    function showMessage(text, type = "info") {
+      message.className = `message ${type} show`;
+      message.textContent = text;
     }
 
     function formatBytes(bytes) {
-      if (!bytes) return "0 B";
-      const units = ["B", "KB", "MB", "GB"];
-      const idx = Math.min(Math.floor(Math.log(bytes) / Math.log(1024)), units.length - 1);
-      const value = bytes / Math.pow(1024, idx);
-      return `${value.toFixed(idx === 0 ? 0 : 2)} ${units[idx]}`;
+      if (!bytes) return "0 MB";
+      return `${(bytes / 1024 / 1024).toFixed(2)} MB`;
     }
 
-    function updateStats() {
+    function updateState() {
+      filesBox.innerHTML = "";
+      selectedFiles.forEach((file, index) => {
+        const row = document.createElement("div");
+        row.className = "file";
+        row.innerHTML = `<span>${file.name} - ${formatBytes(file.size)}</span>`;
+        const remove = document.createElement("button");
+        remove.className = "danger";
+        remove.type = "button";
+        remove.textContent = "حذف";
+        remove.addEventListener("click", () => {
+          selectedFiles.splice(index, 1);
+          updateState();
+        });
+        row.appendChild(remove);
+        filesBox.appendChild(row);
+      });
+
       fileCount.textContent = selectedFiles.length;
-      const total = selectedFiles.reduce((sum, file) => sum + file.size, 0);
-      totalSize.textContent = `${(total / (1024 * 1024)).toFixed(2)} MB`;
-      stats.style.display = selectedFiles.length ? "grid" : "none";
+      totalSize.textContent = formatBytes(selectedFiles.reduce((sum, file) => sum + file.size, 0));
       processBtn.disabled = selectedFiles.length === 0;
     }
 
-    function renderFiles() {
-      fileList.innerHTML = "";
-      if (!selectedFiles.length) {
-        fileList.style.display = "none";
-        updateStats();
-        return;
-      }
-
-      fileList.style.display = "block";
-      selectedFiles.forEach((file, index) => {
-        const row = document.createElement("div");
-        row.className = "file-item";
-        row.innerHTML = `
-          <div class="file-info">
-            <div class="file-name">${file.name}</div>
-            <div class="file-meta">${formatBytes(file.size)} • ${file.type || "file"}</div>
-          </div>
-          <button class="remove-btn" type="button">حذف</button>
-        `;
-        row.querySelector("button").addEventListener("click", () => {
-          selectedFiles.splice(index, 1);
-          renderFiles();
-        });
-        fileList.appendChild(row);
-      });
-
-      updateStats();
-    }
-
-    function addFiles(fileListLike) {
-      const incoming = Array.from(fileListLike);
-      const accepted = [];
-
+    function addFiles(fileList) {
+      const incoming = Array.from(fileList);
       for (const file of incoming) {
-        const isDuplicate = selectedFiles.some(f => f.name === file.name && f.size === file.size);
-        const isReadable = file.type.startsWith("image/") || /\.(xmp|dng|tif|tiff|jpg|jpeg|png)$/i.test(file.name);
-
-        if (!isReadable) {
-          showMsg(`تم تجاهل ${file.name} لأن النوع غير مدعوم.`, "warning");
+        if (!file.type.startsWith("image/")) {
+          showMessage(`تم تجاهل ${file.name}: الملف ليس صورة مدعومة.`, "warn");
           continue;
         }
-
-        if (file.size > MAX_SIZE_BYTES) {
-          showMsg(`تم تجاهل ${file.name} لأن حجمه أكبر من 80MB.`, "warning");
-          continue;
-        }
-
-        if (!isDuplicate && selectedFiles.length + accepted.length < MAX_FILES) {
-          accepted.push(file);
+        const duplicate = selectedFiles.some(item => item.name === file.name && item.size === file.size);
+        if (!duplicate && selectedFiles.length < MAX_FILES) {
+          selectedFiles.push(file);
         }
       }
-
-      selectedFiles = selectedFiles.concat(accepted);
-      renderFiles();
-
-      if (accepted.length) {
-        showMsg(`تمت إضافة ${accepted.length} ملف/ملفات.`, "success");
-      }
+      updateState();
     }
 
-    uploadArea.addEventListener("dragover", (e) => {
-      e.preventDefault();
-      uploadArea.classList.add("dragover");
+    upload.addEventListener("dragover", (event) => {
+      event.preventDefault();
+      upload.classList.add("dragover");
     });
 
-    uploadArea.addEventListener("dragleave", () => {
-      uploadArea.classList.remove("dragover");
+    upload.addEventListener("dragleave", () => upload.classList.remove("dragover"));
+
+    upload.addEventListener("drop", (event) => {
+      event.preventDefault();
+      upload.classList.remove("dragover");
+      addFiles(event.dataTransfer.files);
     });
 
-    uploadArea.addEventListener("drop", (e) => {
-      e.preventDefault();
-      uploadArea.classList.remove("dragover");
-      addFiles(e.dataTransfer.files);
-    });
-
-    fileInput.addEventListener("change", (e) => {
-      addFiles(e.target.files);
+    fileInput.addEventListener("change", (event) => {
+      addFiles(event.target.files);
       fileInput.value = "";
     });
 
     clearBtn.addEventListener("click", () => {
       selectedFiles = [];
-      downloadedXmp = "";
-      fileInput.value = "";
-      fileList.innerHTML = "";
-      fileList.style.display = "none";
-      stats.style.display = "none";
-      resultsArea.className = "empty-state";
-      resultsArea.innerHTML = `
-        <div class="icon">↘</div>
-        <div>لا توجد بيانات بعد.</div>
-        <div style="margin-top:8px;">بعد ربط parser الحقيقي ستظهر الحقول هنا.</div>
-      `;
-      xmpPreviewWrap.style.display = "none";
+      currentXmp = "";
+      detectedCount.textContent = "0";
       downloadBtn.disabled = true;
-      downloadBtn.classList.remove("show");
-      processBtn.disabled = true;
-      showMsg("تم المسح.", "info");
-      updateStats();
+      downloadBtn.style.display = "none";
+      xmpPreview.style.display = "none";
+      warningsBox.style.display = "none";
+      results.className = "empty";
+      results.textContent = "لا توجد نتائج بعد.";
+      updateState();
+      showMessage("تم المسح.", "info");
     });
 
-    function normalizeForApi(data) {
-      return data;
-    }
+    function renderSection(name, values) {
+      const section = document.createElement("section");
+      section.className = "section";
+      const title = document.createElement("h2");
+      title.textContent = name;
+      const grid = document.createElement("div");
+      grid.className = "grid";
 
-    async function processFiles() {
-      if (!selectedFiles.length) {
-        showMsg("اختر ملفات أولًا.", "warning");
-        return;
+      for (const [key, value] of Object.entries(values || {})) {
+        const field = document.createElement("div");
+        field.className = "field";
+        const label = document.createElement("span");
+        label.textContent = key;
+        const val = document.createElement("span");
+        val.textContent = Array.isArray(value) ? value.join(" | ") : value;
+        field.append(label, val);
+        grid.appendChild(field);
       }
 
-      progressWrap.classList.add("show");
-      progressFill.style.width = "0%";
-      progressLabel.textContent = "جاري التحضير...";
+      section.append(title, grid);
+      return section;
+    }
+
+    function renderResults(payload) {
+      results.className = "";
+      results.innerHTML = "";
+      const settings = payload.settings || {};
+      ["Light", "Effects", "HSL", "Curves"].forEach(name => {
+        if (settings[name]) results.appendChild(renderSection(name, settings[name]));
+      });
+
+      detectedCount.textContent = (payload.detected_fields || []).length;
+      const warnings = payload.warnings || [];
+      warningsBox.style.display = warnings.length ? "block" : "none";
+      warningsBox.innerHTML = warnings.length ? warnings.map(item => `<div>${item}</div>`).join("") : "";
+
+      currentXmp = payload.xmp || "";
+      xmpPreview.textContent = currentXmp;
+      xmpPreview.style.display = currentXmp ? "block" : "none";
+      downloadBtn.disabled = !currentXmp;
+      downloadBtn.style.display = currentXmp ? "block" : "none";
+    }
+
+    processBtn.addEventListener("click", async () => {
+      if (!selectedFiles.length) return;
+
+      const form = new FormData();
+      selectedFiles.forEach(file => form.append("images", file, file.name));
 
       processBtn.disabled = true;
-      downloadBtn.disabled = true;
-      downloadedXmp = "";
+      showMessage("جاري التحليل وبناء ملف XMP...", "info");
 
       try {
-        if (typeof window.extractPresetFromFiles === "function") {
-          progressLabel.textContent = "جاري استخراج البيانات من الصور...";
-          const extracted = await window.extractPresetFromFiles(selectedFiles);
-          if (!extracted || typeof extracted !== "object") {
-            throw new Error("extractPresetFromFiles لم ترجع بيانات صالحة.");
-          }
-
-          const payload = normalizeForApi(extracted);
-          progressFill.style.width = "55%";
-
-          progressLabel.textContent = "جاري إنشاء XMP...";
-          const resp = await fetch(API_URL, {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json"
-            },
-            body: JSON.stringify(payload)
-          });
-
-          const result = await resp.json();
-          progressFill.style.width = "100%";
-
-          if (!resp.ok || !result.success) {
-            throw new Error(result.error || "فشل إنشاء XMP.");
-          }
-
-          renderResults(result);
-          downloadedXmp = result.xmp || "";
-          xmpPreview.textContent = downloadedXmp;
-          xmpPreviewWrap.style.display = "block";
-          downloadBtn.disabled = false;
-          downloadBtn.classList.add("show");
-          showMsg("تم إنشاء ملف XMP بنجاح.", "success");
-        } else {
-          throw new Error(
-            "image_parser.js غير موصول بعد. هذه الصفحة جاهزة فقط، لكن الاستخراج الفعلي يحتاج المرحلة التالية."
-          );
+        const response = await fetch(API_URL, { method: "POST", body: form });
+        const payload = await response.json();
+        if (!response.ok || !payload.success) {
+          throw new Error(payload.error || "فشل إنشاء XMP.");
         }
+        renderResults(payload);
+        showMessage("تم إنشاء ملف XMP والتحقق منه بنجاح.", "ok");
       } catch (error) {
-        showMsg(error.message, "error");
+        showMessage(error.message, "err");
       } finally {
         processBtn.disabled = selectedFiles.length === 0;
-        window.setTimeout(() => progressWrap.classList.remove("show"), 1200);
       }
-    }
-
-    function renderResults(result) {
-      const settings = result.settings || {};
-      resultsArea.className = "";
-      resultsArea.innerHTML = "";
-
-      const sectionOrder = ["Light", "Effects", "HSL", "Curves", "meta", "canonical"];
-      const display = result.canonical && result.settings ? result.settings : settings;
-
-      const groupMap = [
-        ["Light", display.Light],
-        ["Effects", display.Effects],
-        ["HSL", display.HSL],
-        ["Curves", display.Curves],
-      ];
-
-      const usableGroups = groupMap.filter(([, value]) => value && typeof value === "object");
-
-      if (!usableGroups.length) {
-        resultsArea.className = "empty-state";
-        resultsArea.innerHTML = `
-          <div class="icon">⚠️</div>
-          <div>لا توجد بيانات قابلة للعرض.</div>
-          <div style="margin-top:8px;">تأكد من أن parser أعاد schema صحيحًا.</div>
-        `;
-        return;
-      }
-
-      for (const [groupName, groupData] of usableGroups) {
-        const block = document.createElement("div");
-        block.className = "section";
-
-        const head = document.createElement("div");
-        head.className = "section-head";
-        head.textContent = groupName;
-
-        const grid = document.createElement("div");
-        grid.className = "grid";
-
-        for (const [key, value] of Object.entries(groupData)) {
-          const field = document.createElement("div");
-          field.className = "field";
-          field.innerHTML = `<span class="k">${key}</span><span class="v">${value}</span>`;
-          grid.appendChild(field);
-        }
-
-        block.appendChild(head);
-        block.appendChild(grid);
-        resultsArea.appendChild(block);
-      }
-
-      if (result.validation) {
-        const metaBlock = document.createElement("div");
-        metaBlock.className = "section";
-        metaBlock.innerHTML = `
-          <div class="section-head">Validation</div>
-          <div class="grid">
-            <div class="field"><span class="k">success</span><span class="v">${result.validation.success}</span></div>
-            <div class="field"><span class="k">message</span><span class="v">${result.message || "-"}</span></div>
-          </div>
-        `;
-        resultsArea.appendChild(metaBlock);
-      }
-    }
-
-    processBtn.addEventListener("click", processFiles);
-
-    downloadBtn.addEventListener("click", () => {
-      if (!downloadedXmp) return;
-
-      const blob = new Blob([downloadedXmp], { type: "application/rdf+xml;charset=utf-8" });
-      const url = URL.createObjectURL(blob);
-
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = "Lightroom_Preset.xmp";
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-
-      URL.revokeObjectURL(url);
-      showMsg("تم تحميل ملف XMP.", "success");
     });
 
-    window.addEventListener("load", () => {
-      showMsg("الواجهة جاهزة. الخطوة التالية هي image_parser.py لربط استخراج الصور فعليًا.", "info");
+    downloadBtn.addEventListener("click", () => {
+      if (!currentXmp) return;
+      const blob = new Blob([currentXmp], { type: "application/rdf+xml;charset=utf-8" });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = "Lightroom_Preset.xmp";
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      URL.revokeObjectURL(url);
     });
   </script>
 </body>
